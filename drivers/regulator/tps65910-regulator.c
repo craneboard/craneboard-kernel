@@ -554,6 +554,7 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 	struct regulator_init_data      *initdata;
 	struct regulation_constraints   *c;
 	struct regulator_dev            *rdev;
+	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 
 	for (i = 0, info = NULL; i < ARRAY_SIZE(tps65910_regs); i++) {
 		if (tps65910_regs[i].desc.id != pdev->id)
@@ -561,6 +562,7 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 		info = tps65910_regs + i;
 		break;
 	}
+	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 	if (!info)
 		return -ENODEV;
 
@@ -568,6 +570,7 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 	if (!initdata)
 		return -EINVAL;
 
+	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 	/* Constrain board-specific capabilities according to what
 	 * this driver and the chip itself can actually do.
 	 */
@@ -577,6 +580,7 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 		| REGULATOR_CHANGE_MODE
 		| REGULATOR_CHANGE_STATUS;
 
+	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 	switch (pdev->id) {
 	case TPS65910_REG_VIO:
 	case TPS65910_REG_VDD1:
@@ -591,6 +595,7 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 	default:
 		break;
 	}
+	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 
 	rdev = regulator_register(&info->desc, &pdev->dev, initdata, info);
 

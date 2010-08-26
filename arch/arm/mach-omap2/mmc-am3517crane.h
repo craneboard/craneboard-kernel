@@ -6,7 +6,7 @@
  * published by the Free Software Foundation.
  */
 
-struct craneboard_hsmmc_info {
+struct am3517_hsmmc_info {
 	u8	mmc;		/* controller 1/2/3 */
 	u8	wires;		/* 1/4/8 wires */
 	bool	transceiver;	/* MMC-2 option */
@@ -19,4 +19,4 @@ struct craneboard_hsmmc_info {
 	int	ocr_mask;	/* temporary HACK */
 };
 
-void craneboard_mmc_init(struct craneboard_hsmmc_info *);
+void am3517_mmc_init(struct am3517_hsmmc_info *);

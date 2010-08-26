@@ -1,7 +1,7 @@
 /*
- * linux/arch/arm/mach-omap2/board-crane.c
+ * linux/arch/arm/mach-omap2/board-am3517crane.c
  *
- * Copyright (C) 2010 Mistral Solutions Pvt Ltd <www.mistralsolutions.com>
+ * Copyright (C) 2010 Mistral Solutions Pvt LtD <www.mistralsolutions.com>
  * Author: Srinath.R <srinath@mistralsolutions.com>
  *
  * Based on mach-omap2/board-am3517evm.c
@@ -21,11 +21,14 @@
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
 #include <linux/irq.h>
+#include <linux/i2c/tsc2004.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/nand.h>
 #include <linux/input.h>
+#include <linux/tca6416_keypad.h>
 #include <linux/davinci_emac.h>
+#include <linux/i2c/pca953x.h>
 #include <linux/regulator/machine.h>
 #include <linux/can/platform/ti_hecc.h>
 #include <linux/i2c/tps65910.h>
@@ -44,10 +47,7 @@
 #include <plat/gpmc.h>
 #include <plat/nand.h>
 
-#include <media/tvp514x.h>
-#include <media/ti-media/vpfe_capture.h>
-
-#include "mmc-craneboard.h"
+#include "mmc-am3517crane.h"
 #include "mux.h"
 
 #define GPMC_CS0_BASE  0x60
@@ -55,105 +55,99 @@
 
 #define NAND_BLOCK_SIZE        SZ_128K
 
-#define GPIO_TPS65910_IRQ	0
-#define TPS65910_IRQ_LINE	0
-#define USB3320_RESET_GPIO	38
-#define USB_ENABLE_GPIO		35
-
-static struct mtd_partition craneboard_nand_partitions[] = {
-	/* All the partition sizes are listed in terms of NAND block size */
-	{
-		.name           = "xloader-nand",
-		.offset         = 0,
-		.size           = 4*(SZ_128K),
-		.mask_flags     = MTD_WRITEABLE
-	},
-	{
-		.name           = "uboot-nand",
-		.offset         = MTDPART_OFS_APPEND,
-		.size           = 14*(SZ_128K),
-		.mask_flags     = MTD_WRITEABLE
-	},
-	{
-		.name           = "params-nand",
-		.offset         = MTDPART_OFS_APPEND,
-		.size           = 2*(SZ_128K)
-	},
-	{
-		.name           = "linux-nand",
-		.offset         = MTDPART_OFS_APPEND,
-		.size           = 40*(SZ_128K)
-	},
-	{
-		.name           = "jffs2-nand",
-		.size           = MTDPART_SIZ_FULL,
-		.offset         = MTDPART_OFS_APPEND,
-	},
-};
-
-static struct omap_nand_platform_data craneboard_nand_data = {
-	.parts          = craneboard_nand_partitions,
-	.nr_parts       = ARRAY_SIZE(craneboard_nand_partitions),
-	.nand_setup     = NULL,
-	.dma_channel    = -1,           /* disable DMA in OMAP NAND driver */
-	.dev_ready      = NULL,
-};
-
-static struct resource craneboard_nand_resource = {
-	.flags          = IORESOURCE_MEM,
-};
-
-static struct platform_device craneboard_nand_device = {
-	.name           = "omap2-nand",
-	.id             = 0,
-	.dev            = {
-		.platform_data  = &craneboard_nand_data,
-	},
-	.num_resources  = 1,
-	.resource       = &craneboard_nand_resource,
-};
-
-void __init craneboard_flash_init(void)
+static struct mtd_partition am3517crane_nand_partitions[] = {
+/* All the partition sizes are listed in terms of NAND block size */
 {
-	u8 cs = 0;
-	u8 nandcs = GPMC_CS_NUM + 1;
-	u32 ret;
-	u32 gpmc_base_add = OMAP34XX_GPMC_VIRT;
+       .name           = "xloader-nand",
+       .offset         = 0,
+       .size           = 4*(SZ_128K),
+       .mask_flags     = MTD_WRITEABLE
+},
+{
+       .name           = "uboot-nand",
+       .offset         = MTDPART_OFS_APPEND,
+       .size           = 14*(SZ_128K),
+       .mask_flags     = MTD_WRITEABLE
+},
+{
+       .name           = "params-nand",
+       .offset         = MTDPART_OFS_APPEND,
+       .size           = 2*(SZ_128K)
+},
+{
+       .name           = "linux-nand",
+       .offset         = MTDPART_OFS_APPEND,
+       .size           = 40*(SZ_128K)
+},
+{
+       .name           = "jffs2-nand",
+       .size           = MTDPART_SIZ_FULL,
+       .offset         = MTDPART_OFS_APPEND,
+},
+};
 
-	while (cs < GPMC_CS_NUM) {
-		ret = 0;
-		ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
+static struct omap_nand_platform_data am3517crane_nand_data = {
+       .parts          = am3517crane_nand_partitions,
+       .nr_parts       = ARRAY_SIZE(am3517crane_nand_partitions),
+       .nand_setup     = NULL,
+       .dma_channel    = -1,           /* disable DMA in OMAP NAND driver */
+       .dev_ready      = NULL,
+};
 
-		if (0x800 == (ret & 0xC00)) {
-			/* Found it!! */
-			if (nandcs > GPMC_CS_NUM)
-				nandcs = cs;
-		}
-		cs++;
-	}
-	if (nandcs > GPMC_CS_NUM) {
-		printk(KERN_INFO "NAND: Unable to find configuration in \
-				GPMC\n");
-		return;
-	}
+static struct resource am3517crane_nand_resource = {
+       .flags          = IORESOURCE_MEM,
+};
 
-	if (nandcs < GPMC_CS_NUM) {
-		craneboard_nand_data.cs   = nandcs;
-		craneboard_nand_data.gpmc_cs_baseaddr = (void *)(gpmc_base_add
-				+ GPMC_CS0_BASE + nandcs*GPMC_CS_SIZE);
+static struct platform_device am3517crane_nand_device = {
+       .name           = "omap2-nand",
+       .id             = 0,
+       .dev            = {
+                       .platform_data  = &am3517crane_nand_data,
+       },
+       .num_resources  = 1,
+       .resource       = &am3517crane_nand_resource,
+};
 
-		craneboard_nand_data.gpmc_baseaddr = (void *) (gpmc_base_add);
+void __init am3517crane_flash_init(void)
+{
+       u8 cs = 0;
+       u8 nandcs = GPMC_CS_NUM + 1;
+       u32 gpmc_base_add = OMAP34XX_GPMC_VIRT;
 
-		if (platform_device_register(&craneboard_nand_device) < 0)
-			printk(KERN_ERR "Unable to register NAND device\n");
-	}
+       while (cs < GPMC_CS_NUM) {
+               u32 ret = 0;
+               ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
+
+               if ((ret & 0xC00) == 0x800) {
+                       /* Found it!! */
+                       if (nandcs > GPMC_CS_NUM)
+                               nandcs = cs;
+               }
+               cs++;
+       }
+       if (nandcs > GPMC_CS_NUM) {
+               printk(KERN_INFO "NAND: Unable to find configuration "
+                       " in GPMC\n ");
+               return;
+       }
+
+       if (nandcs < GPMC_CS_NUM) {
+               am3517crane_nand_data.cs   = nandcs;
+               am3517crane_nand_data.gpmc_cs_baseaddr = (void *)(gpmc_base_add +
+                                       GPMC_CS0_BASE + nandcs*GPMC_CS_SIZE);
+               am3517crane_nand_data.gpmc_baseaddr   = (void *) (gpmc_base_add);
+
+               if (platform_device_register(&am3517crane_nand_device) < 0)
+                       printk(KERN_ERR "Unable to register NAND device\n");
+
+       }
 }
 
 
 #define AM35XX_EVM_PHY_MASK		(0xF)
 #define AM35XX_EVM_MDIO_FREQUENCY    	(1000000)
 
-static struct emac_platform_data craneboard_emac_pdata = {
+static struct emac_platform_data am3517_crane_emac_pdata = {
 	.phy_mask       = AM35XX_EVM_PHY_MASK,
 	.mdio_max_freq  = AM35XX_EVM_MDIO_FREQUENCY,
 	.rmii_en        = 1,
@@ -163,11 +157,11 @@ static int __init eth_addr_setup(char *str)
 {
 	int i;
 
-	if (str == NULL)
+	if(str == NULL)
 		return 0;
-	for (i = 0; i <  ETH_ALEN; i++)
-		craneboard_emac_pdata.mac_addr[i] = strict_strtol(&str[i*3],
-				16, (long *)NULL);
+	for(i = 0; i <  ETH_ALEN; i++)
+		am3517_crane_emac_pdata.mac_addr[i] = simple_strtol(&str[i*3],
+							(char **)NULL, 16);
 	return 1;
 }
 
@@ -215,10 +209,9 @@ static void am3517_enable_ethernet_int(void)
 
 	regval = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
 	regval = (regval | AM35XX_CPGMAC_C0_RX_PULSE_CLR |
-			AM35XX_CPGMAC_C0_TX_PULSE_CLR |
-			AM35XX_CPGMAC_C0_MISC_PULSE_CLR |
-			AM35XX_CPGMAC_C0_RX_THRESH_CLR);
-	omap_ctrl_writel(regval, AM35XX_CONTROL_LVL_INTR_CLEAR);
+		AM35XX_CPGMAC_C0_TX_PULSE_CLR | AM35XX_CPGMAC_C0_MISC_PULSE_CLR |
+		AM35XX_CPGMAC_C0_RX_THRESH_CLR );
+	omap_ctrl_writel(regval,AM35XX_CONTROL_LVL_INTR_CLEAR);
 	regval = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
 }
 
@@ -228,12 +221,12 @@ static void am3517_disable_ethernet_int(void)
 
 	regval = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
 	regval = (regval | AM35XX_CPGMAC_C0_RX_PULSE_CLR |
-			AM35XX_CPGMAC_C0_TX_PULSE_CLR);
-	omap_ctrl_writel(regval, AM35XX_CONTROL_LVL_INTR_CLEAR);
+		AM35XX_CPGMAC_C0_TX_PULSE_CLR);
+	omap_ctrl_writel(regval,AM35XX_CONTROL_LVL_INTR_CLEAR);
 	regval = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
 }
 
-void craneboard_ethernet_init(struct emac_platform_data *pdata)
+void am3517_crane_ethernet_init(struct emac_platform_data *pdata)
 {
 	unsigned int regval;
 
@@ -251,225 +244,78 @@ void craneboard_ethernet_init(struct emac_platform_data *pdata)
 
 	regval = omap_ctrl_readl(AM35XX_CONTROL_IP_SW_RESET);
 	regval = regval & (~(AM35XX_CPGMACSS_SW_RST));
-	omap_ctrl_writel(regval, AM35XX_CONTROL_IP_SW_RESET);
+	omap_ctrl_writel(regval,AM35XX_CONTROL_IP_SW_RESET);
 	regval = omap_ctrl_readl(AM35XX_CONTROL_IP_SW_RESET);
 
 	return ;
 }
 
-
-
-#define DVI_ENABLE_GPIO	52
-static int dvi_enabled;
-
-static void __init craneboard_display_init(void)
+static void __init am3517_crane_display_init(void)
 {
-	int r;
-	omap_mux_init_gpio(DVI_ENABLE_GPIO, OMAP_PIN_OUTPUT);
-	/*
-	 * Enable GPIO 52  = LCD/DVI Enable/disable
-	 */
-	r = gpio_request(DVI_ENABLE_GPIO, "dvi_enable");
-	if (r) {
-		printk(KERN_ERR "failed to get dvi_enable \n");
-		return;
-	}
-	gpio_direction_output(DVI_ENABLE_GPIO, 1);
-
-	gpio_set_value(DVI_ENABLE_GPIO, 0);
-
-	dvi_enabled = 1;
-
-	printk(KERN_INFO "Display initialized successfully\n");
-	return;
+	omap_mux_init_gpio(52,OMAP_PIN_OUTPUT);
+	gpio_request(52, "dvi_enable");
+	gpio_direction_output(52, 1);
 }
 
 
-
-static int craneboard_panel_enable_tv(struct omap_dss_device *dssdev)
+static int am3517_crane_panel_enable_tv(struct omap_dss_device *dssdev)
 {
 	return 0;
 }
 
-static void craneboard_panel_disable_tv(struct omap_dss_device *dssdev)
+static void am3517_crane_panel_disable_tv(struct omap_dss_device *dssdev)
 {
 }
 
-static struct omap_dss_device craneboard_tv_device = {
+static struct omap_dss_device am3517_crane_tv_device = {
 	.type 			= OMAP_DISPLAY_TYPE_VENC,
 	.name 			= "tv",
 	.driver_name		= "venc",
-	.phy.venc.type		= OMAP_DSS_VENC_TYPE_SVIDEO,
-	.platform_enable	= craneboard_panel_enable_tv,
-	.platform_disable	= craneboard_panel_disable_tv,
+        .phy.venc.type          = OMAP_DSS_VENC_TYPE_COMPOSITE,
+	.platform_enable	= am3517_crane_panel_enable_tv,
+	.platform_disable	= am3517_crane_panel_disable_tv,
 };
 
-static int craneboard_panel_enable_dvi(struct omap_dss_device *dssdev)
+static int am3517_crane_panel_enable_dvi(struct omap_dss_device *dssdev)
 {
-	gpio_set_value(DVI_ENABLE_GPIO, 0);
-	dvi_enabled = 1;
-
+	gpio_set_value(52, 1);
 	return 0;
 }
 
-static void craneboard_panel_disable_dvi(struct omap_dss_device *dssdev)
+static void am3517_crane_panel_disable_dvi(struct omap_dss_device *dssdev)
 {
-	gpio_set_value(DVI_ENABLE_GPIO, 1);
-	dvi_enabled = 0;
-
+	gpio_set_value(52, 0);
 }
 
-static struct omap_dss_device craneboard_dvi_device = {
+static struct omap_dss_device am3517_crane_dvi_device = {
 	.type			= OMAP_DISPLAY_TYPE_DPI,
 	.name			= "dvi",
 	.driver_name		= "generic_panel",
 	.phy.dpi.data_lines	= 24,
-	.platform_enable	= craneboard_panel_enable_dvi,
-	.platform_disable	= craneboard_panel_disable_dvi,
+	.platform_enable	= am3517_crane_panel_enable_dvi,
+	.platform_disable	= am3517_crane_panel_disable_dvi,
 };
 
-static struct omap_dss_device *craneboard_dss_devices[] = {
-	&craneboard_tv_device,
-	&craneboard_dvi_device,
+static struct omap_dss_device *am3517_crane_dss_devices[] = {
+	&am3517_crane_tv_device,
+	&am3517_crane_dvi_device,
 };
 
-static struct omap_dss_board_info craneboard_dss_data = {
-	.num_devices	= ARRAY_SIZE(craneboard_dss_devices),
-	.devices	= craneboard_dss_devices,
-	.default_device	= &craneboard_dvi_device,
+static struct omap_dss_board_info am3517_crane_dss_data = {
+	.num_devices	= ARRAY_SIZE(am3517_crane_dss_devices),
+	.devices	= am3517_crane_dss_devices,
+	.default_device	= &am3517_crane_dvi_device,
 };
 
-struct platform_device craneboard_dss_device = {
+struct platform_device am3517_crane_dss_device = {
 	.name		= "omapdss",
 	.id		= -1,
 	.dev		= {
-		.platform_data	= &craneboard_dss_data,
-	},
-};
-
-/*
- * VPFE - Video Decoder interface
- */
-#define TVP514X_STD_ALL		(V4L2_STD_NTSC | V4L2_STD_PAL)
-
-/* Inputs available at the TVP5146 */
-static struct v4l2_input tvp5146_inputs[] = {
-	{
-		.index	= 0,
-		.name	= "Composite",
-		.type	= V4L2_INPUT_TYPE_CAMERA,
-		.std	= TVP514X_STD_ALL,
-	},
-};
-
-static struct tvp514x_platform_data tvp5146_pdata = {
-	.clk_polarity	= 0,
-	.hs_polarity	= 1,
-	.vs_polarity	= 1
-};
-
-static struct vpfe_route tvp5146_routes[] = {
-	{
-		.input	= INPUT_CVBS_VI1A,
-		.output	= OUTPUT_10BIT_422_EMBEDDED_SYNC,
-	},
-	{
-		.input	= INPUT_SVIDEO_VI2C_VI1C,
-		.output	= OUTPUT_10BIT_422_EMBEDDED_SYNC,
-	},
-};
-
-static struct vpfe_subdev_info vpfe_sub_devs[] = {
-	{
-		.name		= "tvp5146",
-		.grp_id		= 0,
-		.num_inputs	= ARRAY_SIZE(tvp5146_inputs),
-		.inputs		= tvp5146_inputs,
-		.routes		= tvp5146_routes,
-		.can_route	= 1,
-		.ccdc_if_params	= {
-			.if_type = VPFE_BT656_10BIT,
-			.hdpol	= VPFE_PINPOL_POSITIVE,
-			.vdpol	= VPFE_PINPOL_POSITIVE,
-		},
-		.board_info	= {
-			I2C_BOARD_INFO("tvp5146", 0x5C),
-			.platform_data = &tvp5146_pdata,
-		},
-	},
-};
-
-static void craneboard_clear_vpfe_intr(int vdint)
-{
-	unsigned int vpfe_int_clr;
-
-	vpfe_int_clr = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
-
-	switch (vdint) {
-		/* VD0 interrrupt */
-	case INT_35XX_CCDC_VD0_IRQ:
-		vpfe_int_clr &= ~AM35XX_VPFE_CCDC_VD0_INT_CLR;
-		vpfe_int_clr |= AM35XX_VPFE_CCDC_VD0_INT_CLR;
-		break;
-		/* VD1 interrrupt */
-	case INT_35XX_CCDC_VD1_IRQ:
-		vpfe_int_clr &= ~AM35XX_VPFE_CCDC_VD1_INT_CLR;
-		vpfe_int_clr |= AM35XX_VPFE_CCDC_VD1_INT_CLR;
-		break;
-		/* VD2 interrrupt */
-	case INT_35XX_CCDC_VD2_IRQ:
-		vpfe_int_clr &= ~AM35XX_VPFE_CCDC_VD2_INT_CLR;
-		vpfe_int_clr |= AM35XX_VPFE_CCDC_VD2_INT_CLR;
-		break;
-		/* Clear all interrrupts */
-	default:
-		vpfe_int_clr &= ~(AM35XX_VPFE_CCDC_VD0_INT_CLR |
-				AM35XX_VPFE_CCDC_VD1_INT_CLR |
-				AM35XX_VPFE_CCDC_VD2_INT_CLR);
-		vpfe_int_clr |= (AM35XX_VPFE_CCDC_VD0_INT_CLR |
-					AM35XX_VPFE_CCDC_VD1_INT_CLR |
-					AM35XX_VPFE_CCDC_VD2_INT_CLR);
-		break;
-	}
-	omap_ctrl_writel(vpfe_int_clr, AM35XX_CONTROL_LVL_INTR_CLEAR);
-	vpfe_int_clr = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
-}
-
-static struct vpfe_config vpfe_cfg = {
-	.num_subdevs	= ARRAY_SIZE(vpfe_sub_devs),
-	.i2c_adapter_id	= 3,
-	.sub_devs	= vpfe_sub_devs,
-	.clr_intr	= craneboard_clear_vpfe_intr,
-	.card_name	= "DM6446 EVM",
-	.ccdc		= "DM6446 CCDC",
-};
-
-static struct resource vpfe_resources[] = {
-	{
-		.start	= INT_35XX_CCDC_VD0_IRQ,
-		.end	= INT_35XX_CCDC_VD0_IRQ,
-		.flags	= IORESOURCE_IRQ,
-	},
-	{
-		.start	= INT_35XX_CCDC_VD1_IRQ,
-		.end	= INT_35XX_CCDC_VD1_IRQ,
-		.flags	= IORESOURCE_IRQ,
+		.platform_data	= &am3517_crane_dss_data,
 	},
 };
 
 static u64 vpfe_capture_dma_mask = DMA_BIT_MASK(32);
-static struct platform_device vpfe_capture_dev = {
-	.name		= CAPTURE_DRV_NAME,
-	.id		= -1,
-	.num_resources	= ARRAY_SIZE(vpfe_resources),
-	.resource	= vpfe_resources,
-	.dev = {
-		.dma_mask		= &vpfe_capture_dma_mask,
-		.coherent_dma_mask	= DMA_BIT_MASK(32),
-		.platform_data		= &vpfe_cfg,
-	},
-};
-
 static struct resource dm644x_ccdc_resource[] = {
 	/* CCDC Base address */
 	{
@@ -489,8 +335,6 @@ static struct platform_device dm644x_ccdc_dev = {
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
 	},
 };
-
-
 
 static struct regulator_consumer_supply craneboard_vdd1_supplies[] = {
 	{
@@ -658,12 +502,12 @@ static struct regulator_init_data craneboard_regulator_vpll = {
 	.consumer_supplies = craneboard_vpll_supplies,
 };
 
-
 static int craneboard_tps65910_config(struct tps65910_platform_data *pdata)
 {
 	u8 val;
 	int err;
 
+	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
 	/************Initilise TPS65910 for craneboard *****************/
 
 	/* pull up/down default will do, external pullup provided on board */
@@ -675,6 +519,7 @@ static int craneboard_tps65910_config(struct tps65910_platform_data *pdata)
 	val = TPS65910_VRTC_OFFMASK;
 	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
 				TPS65910_REG_VRTC);
+	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
 	if (err) {
 		printk(KERN_ERR "Unable to write TPS65910_REG_VRTC reg\n");
 		return -EIO;
@@ -683,26 +528,26 @@ static int craneboard_tps65910_config(struct tps65910_platform_data *pdata)
 	/* Therm_REG default is fine */
 
 	/*Back-up battery charger control*/
-
-	tps65910_enable_bbch(TPS65910_BBSEL_2P52);
+	//tps65910_enable_bbch(TPS65910_BBSEL_2P52);
 
 	/* DEVCTRL_REG */
 	val &= 0;
 	val &= ~TPS65910_RTC_PWDNN;
 	val |= (TPS65910_CK32K_CTRL | TPS65910_SR_CTL_I2C_SEL);
 
+	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
 	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
 				TPS65910_REG_DEVCTRL);
 	if (err) {
 		printk(KERN_ERR "Unsbale to write TPS65910_REG_DEVCTRL reg\n");
 		return -EIO;
 	}
+	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
 	return 0;
 }
 
-
 static struct tps65910_platform_data craneboard_tps65910_data = {
-	.irq_num 	= (unsigned)TPS65910_IRQ_LINE,
+	.irq_num 	= (unsigned)TPS65910_HOST_IRQ,
 	.gpio  		= NULL,
 	.vio   		= &craneboard_regulator_vio,
 	.vdd1  		= &craneboard_regulator_vdd1,
@@ -720,94 +565,88 @@ static struct tps65910_platform_data craneboard_tps65910_data = {
 };
 
 
+static struct platform_device tps65910_rtc_device = {
+	.name = "tps65910_rtc",
+	.id   = -1,
+	.dev  = {
+			.platform_data = NULL,
+		},
+};
 
-static struct i2c_board_info __initdata craneboard_i2c1_boardinfo[] = {
+static struct i2c_board_info __initdata am3517crane_i2c1_boardinfo[] = {
 	{
-		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID0),
-		.flags = I2C_CLIENT_WAKE,
-		.irq = INT_34XX_SYS_NIRQ,
-		.platform_data = &craneboard_tps65910_data,
+	I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID0),
+	.flags          = I2C_CLIENT_WAKE,
+	.irq            = TPS65910_HOST_IRQ,
+	.platform_data  = &craneboard_tps65910_data,
 	},
 };
 
 
-static int __init craneboard_i2c_init(void)
+static int __init am3517_crane_i2c_init(void)
 {
-	omap_register_i2c_bus(1, 400, NULL, 0);
+	omap_register_i2c_bus(1, 400, am3517crane_i2c1_boardinfo,
+			 ARRAY_SIZE(am3517crane_i2c1_boardinfo));
+	omap_register_i2c_bus(2, 400, NULL,0);
+	omap_register_i2c_bus(3, 400, NULL,0);
+
 	return 0;
 }
 
 /*
  * HECC information
  */
-
-#define CAN_STB		214
-static void am3517_hecc_plat_init(void)
-{
-	int r;
-
-	r = gpio_request(CAN_STB, "can_stb");
-	if (r) {
-		printk(KERN_ERR "failed to get can_stb \n");
-		return;
-	}
-
-	gpio_direction_output(CAN_STB, 0);
-}
-
 static struct resource am3517_hecc_resources[] = {
-	{
-		.start  = AM35XX_IPSS_HECC_BASE,
-		.end    = AM35XX_IPSS_HECC_BASE + 0x3FFF,
-		.flags  = IORESOURCE_MEM,
-	},
-	{
-		.start  = INT_35XX_HECC0_IRQ,
-		.end    = INT_35XX_HECC0_IRQ,
-		.flags  = IORESOURCE_IRQ,
-	},
+        {
+                .start  = AM35XX_IPSS_HECC_BASE,
+                .end    = AM35XX_IPSS_HECC_BASE + 0x3FFF,
+                .flags  = IORESOURCE_MEM,
+        },
+        {
+                .start  = INT_35XX_HECC0_IRQ,
+                .end    = INT_35XX_HECC0_IRQ,
+                .flags  = IORESOURCE_IRQ,
+        },
 };
 
 static struct platform_device am3517_hecc_device = {
-	.name           = "ti_hecc",
-	.id             = 1,
-	.num_resources  = ARRAY_SIZE(am3517_hecc_resources),
-	.resource       = am3517_hecc_resources,
+        .name           = "ti_hecc",
+        .id             = 1,
+        .num_resources  = ARRAY_SIZE(am3517_hecc_resources),
+        .resource       = am3517_hecc_resources,
 };
 
-static struct ti_hecc_platform_data craneboard_hecc_pdata = {
-	.scc_hecc_offset        = AM35XX_HECC_SCC_HECC_OFFSET,
-	.scc_ram_offset         = AM35XX_HECC_SCC_RAM_OFFSET,
-	.hecc_ram_offset        = AM35XX_HECC_RAM_OFFSET,
-	.mbx_offset            = AM35XX_HECC_MBOX_OFFSET,
-	.int_line               = AM35XX_HECC_INT_LINE,
-	.version                = AM35XX_HECC_VERSION,
-	.platform_init		= am3517_hecc_plat_init,
+static struct ti_hecc_platform_data am3517_crane_hecc_pdata = {
+        .scc_hecc_offset        = AM35XX_HECC_SCC_HECC_OFFSET,
+        .scc_ram_offset         = AM35XX_HECC_SCC_RAM_OFFSET,
+        .hecc_ram_offset        = AM35XX_HECC_RAM_OFFSET,
+        .mbx_offset            = AM35XX_HECC_MBOX_OFFSET,
+        .int_line               = AM35XX_HECC_INT_LINE,
+        .version                = AM35XX_HECC_VERSION,
 };
 
-static void craneboard_hecc_init(struct ti_hecc_platform_data *pdata)
+static void am3517_crane_hecc_init(struct ti_hecc_platform_data *pdata)
 {
-	am3517_hecc_device.dev.platform_data = pdata;
-	platform_device_register(&am3517_hecc_device);
+        am3517_hecc_device.dev.platform_data = pdata;
+        platform_device_register(&am3517_hecc_device);
 }
 
 
 /*
  * Board initialization
  */
-static struct omap_board_config_kernel craneboard_config[] __initdata = {
+static struct omap_board_config_kernel am3517_crane_config[] __initdata = {
 };
 
-static struct platform_device *craneboard_devices[] __initdata = {
+static struct platform_device *am3517_crane_devices[] __initdata = {
 	&dm644x_ccdc_dev,
-	&vpfe_capture_dev,
-	&craneboard_dss_device,
+	&am3517_crane_dss_device,
 };
 
-static void __init craneboard_init_irq(void)
+static void __init am3517_crane_init_irq(void)
 {
-	omap_board_config = craneboard_config;
-	omap_board_config_size = ARRAY_SIZE(craneboard_config);
+	omap_board_config = am3517_crane_config;
+	omap_board_config_size = ARRAY_SIZE(am3517_crane_config);
 
 	omap2_init_common_hw(NULL, NULL, NULL, NULL, NULL);
 	omap_init_irq();
@@ -816,33 +655,28 @@ static void __init craneboard_init_irq(void)
 
 static struct ehci_hcd_omap_platform_data ehci_pdata __initdata = {
 	.port_mode[0] = EHCI_HCD_OMAP_MODE_PHY,
-#if defined(CONFIG_PANEL_SHARP_LQ043T1DG01) || \
-	defined(CONFIG_PANEL_SHARP_LQ043T1DG01_MODULE)
 	.port_mode[1] = EHCI_HCD_OMAP_MODE_UNKNOWN,
-#else
-	.port_mode[1] = EHCI_HCD_OMAP_MODE_PHY,
-#endif
 	.port_mode[2] = EHCI_HCD_OMAP_MODE_UNKNOWN,
 
 	.phy_reset  = true,
-	.reset_gpio_port[0]  = USB3320_RESET_GPIO,
+	.reset_gpio_port[0]  = 38,
 	.reset_gpio_port[1]  = -EINVAL,
 	.reset_gpio_port[2]  = -EINVAL
 };
 
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux board_mux[] __initdata = {
-	/* USB OTG DRVVBUS offset = 0x212 */
-	OMAP3_MUX(CHASSIS_DMAREQ3, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLDOWN),
-	OMAP3_MUX(MCBSP_CLKS, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLUP),
-	OMAP3_MUX(GPMC_NCS4, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
-	{ .reg_offset = OMAP_MUX_TERMINATOR },
+        /* USB OTG DRVVBUS offset = 0x212 */
+        OMAP3_MUX(CHASSIS_DMAREQ3, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLDOWN),
+        OMAP3_MUX(MCBSP_CLKS, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLUP),
+        OMAP3_MUX(GPMC_NCS4, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
+        { .reg_offset = OMAP_MUX_TERMINATOR },
 };
 #else
-#define board_mux	NULL
+#define board_mux       NULL
 #endif
 
-static struct craneboard_hsmmc_info mmc[] = {
+static struct am3517_hsmmc_info mmc[] = {
 	{
 		.mmc            = 1,
 		.wires          = 8,
@@ -852,60 +686,53 @@ static struct craneboard_hsmmc_info mmc[] = {
 	{}      /* Terminator */
 };
 
-static void __init craneboard_init(void)
+static void __init am3517_crane_init(void)
 {
 
-
-	craneboard_i2c_init();
-
+	am3517_crane_i2c_init();
 	omap3_mux_init(board_mux, OMAP_PACKAGE_CBB);
-	platform_add_devices(craneboard_devices,
-			ARRAY_SIZE(craneboard_devices));
+	platform_add_devices(am3517_crane_devices,
+				ARRAY_SIZE(am3517_crane_devices));
 
 	omap_serial_init();
-	craneboard_flash_init();
+	am3517crane_flash_init();
 	usb_musb_init();
+	if( platform_device_register(&tps65910_rtc_device) < 0)
+		printk("Unable to register RTC platform device\n");
 	/* Configure GPIO for EHCI port */
-	omap_mux_init_gpio(USB3320_RESET_GPIO, OMAP_PIN_OUTPUT);
-	/* Enable USB EHCI */
-	omap_mux_init_gpio(USB_ENABLE_GPIO, OMAP_PIN_OUTPUT);
-	gpio_request(USB_ENABLE_GPIO, "usb_ehci_enable");
-	gpio_direction_output(USB_ENABLE_GPIO, 1);
-	gpio_set_value(USB_ENABLE_GPIO, 1);
-
+	omap_mux_init_gpio(35, OMAP_PIN_OUTPUT);
+	gpio_request(35, "usb_ehci_enable");
+	gpio_direction_output(35, 1);
+	gpio_set_value(35, 1);
+	omap_mux_init_gpio(38, OMAP_PIN_OUTPUT);
 	usb_ehci_init(&ehci_pdata);
 
-	i2c_register_board_info(1, craneboard_i2c1_boardinfo,
-			ARRAY_SIZE(craneboard_i2c1_boardinfo));
+	i2c_register_board_info(1, NULL,0);
 
-	clk_add_alias("master", "dm644x_ccdc", "master",
-			&vpfe_capture_dev.dev);
-	clk_add_alias("slave", "dm644x_ccdc", "slave",
-			&vpfe_capture_dev.dev);
 	/* DSS */
-	craneboard_display_init();
+	am3517_crane_display_init();
 
 	/*Ethernet*/
-	craneboard_ethernet_init(&craneboard_emac_pdata);
-	craneboard_hecc_init(&craneboard_hecc_pdata);
+	am3517_crane_ethernet_init(&am3517_crane_emac_pdata);
+	am3517_crane_hecc_init(&am3517_crane_hecc_pdata);
 
 	/* MMC init function */
-	craneboard_mmc_init(mmc);
+	am3517_mmc_init(mmc);
 
 }
 
-static void __init craneboard_map_io(void)
+static void __init am3517_crane_map_io(void)
 {
 	omap2_set_globals_343x();
 	omap2_map_common_io();
 }
 
-MACHINE_START(CRANEBOARD, "craneboard")
+MACHINE_START(CRANEBOARD, "AM3517/05 CRANEBOARD")
 	.phys_io	= 0x48000000,
 	.io_pg_offst	= ((0xd8000000) >> 18) & 0xfffc,
 	.boot_params	= 0x80000100,
-	.map_io		= craneboard_map_io,
-	.init_irq	= craneboard_init_irq,
-	.init_machine	= craneboard_init,
+	.map_io		= am3517_crane_map_io,
+	.init_irq	= am3517_crane_init_irq,
+	.init_machine	= am3517_crane_init,
 	.timer		= &omap_timer,
 MACHINE_END

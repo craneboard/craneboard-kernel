@@ -22,7 +22,7 @@
 #include <plat/control.h>
 #include <plat/mmc.h>
 #include <plat/board.h>
-#include "mmc-craneboard.h"
+#include "mmc-am3517crane.h"
 
 #define LDO_CLR			0x00
 #define VSEL_S2_CLR		0x40
@@ -181,9 +181,9 @@ static int mmc2_set_power(struct device *dev, int slot, int power_on, int vdd)
 
 static struct omap_mmc_platform_data *hsmmc_data[OMAP34XX_NR_MMC] __initdata;
 
-void __init craneboard_mmc_init(struct craneboard_hsmmc_info *controllers)
+void __init am3517_mmc_init(struct am3517_hsmmc_info *controllers)
 {
-	struct craneboard_hsmmc_info *c;
+	struct am3517_hsmmc_info *c;
 	int nr_hsmmc = ARRAY_SIZE(hsmmc_data);
 
 	for (c = controllers; c->mmc; c++) {
@@ -261,7 +261,7 @@ void __init craneboard_mmc_init(struct craneboard_hsmmc_info *controllers)
 	omap2_init_mmc(hsmmc_data, OMAP34XX_NR_MMC);
 }
 #else
-inline void craneboard_mmc_init(struct craneboard_hsmmc_info *info)
+inline void am3517_mmc_init(struct craneboard_hsmmc_info *info)
 {
 }
 #endif

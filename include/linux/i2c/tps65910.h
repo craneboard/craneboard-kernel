@@ -32,12 +32,12 @@
 
 #define TPS65910_NUM_SLAVES	2
 /* I2C Slave Address 7-bit */
-#define	TPS65910_I2C_ID0	0x12 /* general-purpose */
-#define	TPS65910_I2C_ID1	0x2D /* Smart Reflex */
+#define	TPS65910_I2C_ID0	0x2D /* general-purpose */
+#define	TPS65910_I2C_ID1	0x12 /* Smart Reflex */
 
 
 /* TPS65910 to host IRQ */
-#define TPS65910_IRQ_LINE	0
+#define TPS65910_HOST_IRQ	0
 
 /* TPS65910 MAX GPIOs */
 #define TPS65910_GPIO_MAX	1
