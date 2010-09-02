@@ -575,8 +575,6 @@ static int __devinit tps65910_rtc_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "IRQ is not free.\n");
 		goto out1;
 	}
-	else
-		printk("Irq %d acquired\n", irq);
 	/* Check RTC module status, Enable if it is off */
 	ret = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_CTRL);
 	if (ret < 0)
