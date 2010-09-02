@@ -512,22 +512,20 @@ static int __devinit tps65910_rtc_probe(struct platform_device *pdev)
 	int irq = INT_34XX_SYS_NIRQ;
 	u8 rd_reg;
 
-	printk("Inside %s\n", __func__);
 	if (irq < 0)
 		return -EINVAL;
 
 	rtc = rtc_device_register(pdev->name,
 			&pdev->dev, &tps65910_rtc_ops, THIS_MODULE);
-	printk("RTC device register \n");
+
 	if (IS_ERR(rtc)) {
 		ret = PTR_ERR(rtc);
-		dev_err(&pdev->dev, "can't register RTC device, err %ld\n",
+		dev_err(&pdev->dev, "can't register TPS65910 RTC device, err %ld\n",
 				PTR_ERR(rtc));
 		goto out0;
 
 	}
-	else printk("RTC device successfully registered with"
-			"irq number %d\n", irq);
+	printk("TPS65910 RTC device successfully registered\n");
 
 	platform_set_drvdata(pdev, rtc);
 	INIT_WORK(&rtc_wq, rtc_work);
