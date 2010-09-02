@@ -82,6 +82,57 @@ struct tps65910_client {
 };
 static struct tps65910_client tps65910_modules[TPS65910_NUM_SLAVES];
 
+/* bbch = Back-up battery charger control register */
+int tps65910_enable_bbch(u8 voltage)
+{
+
+        u8 val = 0;
+        int err;
+
+        if (voltage == TPS65910_BBSEL_3P0 || voltage == TPS65910_BBSEL_2P52 ||
+        voltage == TPS65910_BBSEL_3P15 || voltage == TPS65910_BBSEL_VBAT) {
+                val = (voltage | TPS65910_BBCHEN);
+                err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
+                                TPS65910_REG_BBCH);
+                if (err) {
+                        printk(KERN_ERR "Unable write TPS65910_REG_BBCH reg\n");
+                        return -EIO;
+                }
+        } else {
+                printk(KERN_ERR"Invalid argumnet for %s \n", __func__);
+                return -EINVAL;
+        }
+
+        return 0;
+}
+EXPORT_SYMBOL(tps65910_enable_bbch);
+
+int tps65910_disable_bbch(void)
+{
+
+        u8 val = 0;
+        int err;
+
+        err = tps65910_i2c_read_u8(TPS65910_I2C_ID0, &val, TPS65910_REG_BBCH);
+
+        if (!err) {
+                val &= ~TPS65910_BBCHEN;
+
+                err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
+                                TPS65910_REG_BBCH);
+                if (err) {
+                        printk(KERN_ERR "Unable write TPS65910_REG_BBCH \
+                                        reg\n");
+                        return -EIO;
+                }
+        } else {
+                printk(KERN_ERR "Unable to read TPS65910_REG_BBCH reg\n");
+                return -EIO;
+        }
+        return 0;
+}
+EXPORT_SYMBOL(tps65910_disable_bbch);
+
 int tps65910_i2c_read_u8(u8 mod_no, u8 *value, u8 reg)
 {
 	struct tps65910_client *tps65910;
@@ -117,8 +168,6 @@ int tps65910_i2c_write_u8(u8 slave_addr, u8 value, u8 reg)
 	u8 temp_buffer[2] = { 0 };
 	/* offset 1 contains the data */
 	temp_buffer[1] = value;
-//	printk(KERN_INFO "TPS65910 I2C writing to slave_addr = 0x%x reg ="
-//		"0x%x val=0x%x \n", slave_addr, reg, value);
 
 	switch (slave_addr) {
 		case TPS65910_I2C_ID0:
@@ -135,7 +184,6 @@ int tps65910_i2c_write_u8(u8 slave_addr, u8 value, u8 reg)
 
 
 	ret = i2c_smbus_write_byte_data(tps65910->client, reg, temp_buffer[1]);
-//	mdelay (100);
 	if (ret < 0)
 		return -EIO;
 	else
@@ -164,12 +212,8 @@ static int __init
 tps65910_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 
-	int	status;
+	int	 status;
 	unsigned i;
-
-	struct tps65910_platform_data   *pdata = client->dev.platform_data;
-
-	printk("Inside %s\n", __func__);
 
 	if (i2c_check_functionality(client->adapter,
 				(I2C_FUNC_I2C | I2C_FUNC_SMBUS_BYTE)) == 0) {

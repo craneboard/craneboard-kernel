@@ -549,7 +549,7 @@ static int am3517_crane_tps65910_config(struct tps65910_platform_data *pdata)
 	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
 			TPS65910_REG_DEVCTRL);
 	if (err) {
-		printk(KERN_ERR "Unsbale to write TPS65910_REG_DEVCTRL reg\n");
+		printk(KERN_ERR "Unable to write TPS65910_REG_DEVCTRL reg\n");
 		return -EIO;
 	}
 
