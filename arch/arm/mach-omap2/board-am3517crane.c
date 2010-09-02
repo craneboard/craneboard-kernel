@@ -258,22 +258,14 @@ static void __init am3517_crane_display_init(void)
 }
 
 
-static int am3517_crane_panel_enable_tv(struct omap_dss_device *dssdev)
-{
-	return 0;
-}
-
-static void am3517_crane_panel_disable_tv(struct omap_dss_device *dssdev)
-{
-}
 
 static struct omap_dss_device am3517_crane_tv_device = {
 	.type 			= OMAP_DISPLAY_TYPE_VENC,
 	.name 			= "tv",
 	.driver_name		= "venc",
         .phy.venc.type          = OMAP_DSS_VENC_TYPE_COMPOSITE,
-	.platform_enable	= am3517_crane_panel_enable_tv,
-	.platform_disable	= am3517_crane_panel_disable_tv,
+	.platform_enable	= NULL,
+	.platform_disable	= NULL,
 };
 
 static int am3517_crane_panel_enable_dvi(struct omap_dss_device *dssdev)
@@ -336,13 +328,13 @@ static struct platform_device dm644x_ccdc_dev = {
 	},
 };
 
-static struct regulator_consumer_supply craneboard_vdd1_supplies[] = {
+static struct regulator_consumer_supply am3517_crane_vdd1_supplies[] = {
 	{
 		.supply = "vdd_core",
 	},
 };
 
-static struct regulator_init_data craneboard_regulator_vdd1 = {
+static struct regulator_init_data am3517_crane_regulator_vdd1 = {
 	.constraints = {
 		.min_uV = 1200000,
 		.max_uV = 1200000,
@@ -351,17 +343,17 @@ static struct regulator_init_data craneboard_regulator_vdd1 = {
 		.always_on = true,
 		.apply_uV = true,
 	},
-	.num_consumer_supplies = ARRAY_SIZE(craneboard_vdd1_supplies),
-	.consumer_supplies = craneboard_vdd1_supplies,
+	.num_consumer_supplies = ARRAY_SIZE(am3517_crane_vdd1_supplies),
+	.consumer_supplies = am3517_crane_vdd1_supplies,
 };
 
-static struct regulator_consumer_supply craneboard_vdd2_supplies[] = {
+static struct regulator_consumer_supply am3517_crane_vdd2_supplies[] = {
 	{
 		.supply = "vddshv",
 	},
 };
 
-static struct regulator_init_data craneboard_regulator_vdd2 = {
+static struct regulator_init_data am3517_crane_regulator_vdd2 = {
 	.constraints = {
 		.min_uV = 3300000,
 		.max_uV = 3300000,
@@ -370,18 +362,18 @@ static struct regulator_init_data craneboard_regulator_vdd2 = {
 		.always_on = true,
 		.apply_uV = true,
 	},
-	.num_consumer_supplies = ARRAY_SIZE(craneboard_vdd2_supplies),
-	.consumer_supplies = craneboard_vdd2_supplies,
+	.num_consumer_supplies = ARRAY_SIZE(am3517_crane_vdd2_supplies),
+	.consumer_supplies = am3517_crane_vdd2_supplies,
 };
 
 
-static struct regulator_consumer_supply craneboard_vio_supplies[] = {
+static struct regulator_consumer_supply am3517_crane_vio_supplies[] = {
 	{
 		.supply = "vdds",
 	},
 };
 
-static struct regulator_init_data craneboard_regulator_vio = {
+static struct regulator_init_data am3517_crane_regulator_vio = {
 	.constraints = {
 		.min_uV = 1800000,
 		.max_uV = 1800000,
@@ -390,12 +382,12 @@ static struct regulator_init_data craneboard_regulator_vio = {
 		.always_on = true,
 		.apply_uV = true,
 	},
-	.num_consumer_supplies = ARRAY_SIZE(craneboard_vio_supplies),
-	.consumer_supplies = craneboard_vio_supplies,
+	.num_consumer_supplies = ARRAY_SIZE(am3517_crane_vio_supplies),
+	.consumer_supplies = am3517_crane_vio_supplies,
 };
 
 
-static struct regulator_consumer_supply craneboard_vaux1_supplies[] = {
+static struct regulator_consumer_supply am3517_crane_vaux1_supplies[] = {
 	{
 		.supply = "vdd_sram_mpu",
 	},
@@ -407,7 +399,7 @@ static struct regulator_consumer_supply craneboard_vaux1_supplies[] = {
 	},
 };
 
-static struct regulator_init_data craneboard_regulator_vaux1 = {
+static struct regulator_init_data am3517_crane_regulator_vaux1 = {
 	.constraints = {
 		.min_uV = 1800000,
 		.max_uV = 1800000,
@@ -416,18 +408,18 @@ static struct regulator_init_data craneboard_regulator_vaux1 = {
 		.always_on = true,
 		.apply_uV = true,
 	},
-	.num_consumer_supplies = ARRAY_SIZE(craneboard_vaux1_supplies),
-	.consumer_supplies = craneboard_vaux1_supplies,
+	.num_consumer_supplies = ARRAY_SIZE(am3517_crane_vaux1_supplies),
+	.consumer_supplies = am3517_crane_vaux1_supplies,
 };
 
 
-static struct regulator_consumer_supply craneboard_vaux2_supplies[] = {
+static struct regulator_consumer_supply am3517_crane_vaux2_supplies[] = {
 	{
 		.supply = "vdda1p8v_usbphy",
 	},
 };
 
-static struct regulator_init_data craneboard_regulator_vaux2 = {
+static struct regulator_init_data am3517_crane_regulator_vaux2 = {
 	.constraints = {
 		.min_uV = 1800000,
 		.max_uV = 1800000,
@@ -436,18 +428,18 @@ static struct regulator_init_data craneboard_regulator_vaux2 = {
 		.always_on = true,
 		.apply_uV = true,
 	},
-	.num_consumer_supplies = ARRAY_SIZE(craneboard_vaux2_supplies),
-	.consumer_supplies = craneboard_vaux2_supplies,
+	.num_consumer_supplies = ARRAY_SIZE(am3517_crane_vaux2_supplies),
+	.consumer_supplies = am3517_crane_vaux2_supplies,
 };
 
 
-static struct regulator_consumer_supply craneboard_vdac_supplies[] = {
+static struct regulator_consumer_supply am3517_crane_vdac_supplies[] = {
 	{
 		.supply = "vdda_dac",
 	},
 };
 
-static struct regulator_init_data craneboard_regulator_vdac = {
+static struct regulator_init_data am3517_crane_regulator_vdac = {
 	.constraints = {
 		.min_uV = 1800000,
 		.max_uV = 1800000,
@@ -456,17 +448,17 @@ static struct regulator_init_data craneboard_regulator_vdac = {
 		.always_on = true,
 		.apply_uV = true,
 	},
-	.num_consumer_supplies = ARRAY_SIZE(craneboard_vdac_supplies),
-	.consumer_supplies = craneboard_vdac_supplies,
+	.num_consumer_supplies = ARRAY_SIZE(am3517_crane_vdac_supplies),
+	.consumer_supplies = am3517_crane_vdac_supplies,
 };
 
-static struct regulator_consumer_supply craneboard_vmmc_supplies[] = {
+static struct regulator_consumer_supply am3517_crane_vmmc_supplies[] = {
 	{
 		.supply = "vdda3p3v_usbphy",
 	},
 };
 
-static struct regulator_init_data craneboard_regulator_vmmc = {
+static struct regulator_init_data am3517_crane_regulator_vmmc = {
 	.constraints = {
 		.min_uV = 3300000,
 		.max_uV = 3300000,
@@ -475,12 +467,12 @@ static struct regulator_init_data craneboard_regulator_vmmc = {
 		.always_on = true,
 		.apply_uV = true,
 	},
-	.num_consumer_supplies = ARRAY_SIZE(craneboard_vmmc_supplies),
-	.consumer_supplies = craneboard_vmmc_supplies,
+	.num_consumer_supplies = ARRAY_SIZE(am3517_crane_vmmc_supplies),
+	.consumer_supplies = am3517_crane_vmmc_supplies,
 };
 
 
-static struct regulator_consumer_supply craneboard_vpll_supplies[] = {
+static struct regulator_consumer_supply am3517_crane_vpll_supplies[] = {
 	{
 		.supply = "vdds_dpll_mpu_usbhost",
 	},
@@ -489,7 +481,7 @@ static struct regulator_consumer_supply craneboard_vpll_supplies[] = {
 	},
 };
 
-static struct regulator_init_data craneboard_regulator_vpll = {
+static struct regulator_init_data am3517_crane_regulator_vpll = {
 	.constraints = {
 		.min_uV = 1800000,
 		.max_uV = 1800000,
@@ -498,72 +490,126 @@ static struct regulator_init_data craneboard_regulator_vpll = {
 		.always_on = true,
 		.apply_uV = true,
 	},
-	.num_consumer_supplies = ARRAY_SIZE(craneboard_vpll_supplies),
-	.consumer_supplies = craneboard_vpll_supplies,
+	.num_consumer_supplies = ARRAY_SIZE(am3517_crane_vpll_supplies),
+	.consumer_supplies = am3517_crane_vpll_supplies,
 };
 
-static int craneboard_tps65910_config(struct tps65910_platform_data *pdata)
+static int am3517_crane_tps65910_config(struct tps65910_platform_data *pdata)
 {
-	u8 val;
-	int err;
+	u8 val 	= 0;
+	int i 	= 0;
+	int err = -1;
 
-	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
-	/************Initilise TPS65910 for craneboard *****************/
 
-	/* pull up/down default will do, external pullup provided on board */
+	/* Configure TPS65910 for am3517_crane board needs */
 
-	/* REF_REG used in bypass mode */
+	/* Set sleep state active high */
+	val |= (TPS65910_DEV2_SLEEPSIG_POL);
+
+	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
+			TPS65910_REG_DEVCTRL2);
+	if (err) {
+		printk(KERN_ERR "Unable to write TPS65910_REG_DEVCTRL2 reg\n");
+		return -EIO;
+	}
+
+	/* Mask ALL interrupts */
+	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, 0xFF,
+			TPS65910_REG_INT_MSK);
+	if (err) {
+		printk(KERN_ERR "Unable to write TPS65910_REG_INT_MSK reg\n");
+		return -EIO;
+	}
+	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, 0x03,
+			TPS65910_REG_INT_MSK2);
+	if (err) {
+		printk(KERN_ERR "Unable to write TPS65910_REG_INT_MSK2 reg\n");
+		return -EIO;
+	}
 
 	/* Set RTC regulator on during sleep */
 
 	val = TPS65910_VRTC_OFFMASK;
 	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
-				TPS65910_REG_VRTC);
+			TPS65910_REG_VRTC);
+
 	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
+
+	if (err) {
+		printk(KERN_ERR "Unable to write TPS65910_REG_VRTC reg\n");
+		return -EIO;
+	}
+	/* Set RTC Power, disable Smart Reflex in DEVCTRL_REG */
+	val = 0;
+	val &= ~TPS65910_RTC_PWDNN;
+	val |= (TPS65910_CK32K_CTRL | TPS65910_SR_CTL_I2C_SEL);
+
+	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
+
+	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
+			TPS65910_REG_DEVCTRL);
+	if (err) {
+		printk(KERN_ERR "Unsbale to write TPS65910_REG_DEVCTRL reg\n");
+		return -EIO;
+	}
+
+	/* Enable and set back-up battery charger control*/
+
+	tps65910_enable_bbch(TPS65910_BBSEL_2P52);
+
+	err = tps65910_i2c_read_u8(TPS65910_I2C_ID0, &val,
+			TPS65910_REG_VRTC);
+	if (err) {
+		printk(KERN_ERR "Unable to read  TPS65910_REG_VRTC reg\n");
+		return -EIO;
+	}
+	val = TPS65910_VRTC_OFFMASK;
+
+	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
+			TPS65910_REG_VRTC);
 	if (err) {
 		printk(KERN_ERR "Unable to write TPS65910_REG_VRTC reg\n");
 		return -EIO;
 	}
 
-	/* Therm_REG default is fine */
-
-	/*Back-up battery charger control*/
-	//tps65910_enable_bbch(TPS65910_BBSEL_2P52);
-
-	/* DEVCTRL_REG */
+	/* Disable SmartReflex control */
 	val &= 0;
 	val &= ~TPS65910_RTC_PWDNN;
 	val |= (TPS65910_CK32K_CTRL | TPS65910_SR_CTL_I2C_SEL);
 
-	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
 	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
-				TPS65910_REG_DEVCTRL);
+			TPS65910_REG_DEVCTRL);
 	if (err) {
-		printk(KERN_ERR "Unsbale to write TPS65910_REG_DEVCTRL reg\n");
+		printk(KERN_ERR "Unabale to write TPS65910_REG_DEVCTRL reg\n");
 		return -EIO;
 	}
-	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
+
+	/* initilize all ISR work as NULL, specific driver will
+	 * assign function(s) later.
+	 */
+	for (i=0; i < TPS65910_MAX_IRQS; i++)
+		pdata->handlers[i] = NULL;
+
 	return 0;
 }
 
-static struct tps65910_platform_data craneboard_tps65910_data = {
+static struct tps65910_platform_data am3517_crane_tps65910_data = {
 	.irq_num 	= (unsigned)TPS65910_HOST_IRQ,
 	.gpio  		= NULL,
-	.vio   		= &craneboard_regulator_vio,
-	.vdd1  		= &craneboard_regulator_vdd1,
-	.vdd2  		= &craneboard_regulator_vdd2,
+	.vio   		= &am3517_crane_regulator_vio,
+	.vdd1  		= &am3517_crane_regulator_vdd1,
+	.vdd2  		= &am3517_crane_regulator_vdd2,
 	.vdd3  		= NULL,
 	.vdig1		= NULL,
 	.vdig2		= NULL,
 	.vaux33		= NULL,
-	.vmmc		= &craneboard_regulator_vmmc,
-	.vaux1		= &craneboard_regulator_vaux1,
-	.vaux2		= &craneboard_regulator_vaux2,
-	.vdac		= &craneboard_regulator_vdac,
-	.vpll		= &craneboard_regulator_vpll,
-	.board_tps65910_config = craneboard_tps65910_config,
+	.vmmc		= &am3517_crane_regulator_vmmc,
+	.vaux1		= &am3517_crane_regulator_vaux1,
+	.vaux2		= &am3517_crane_regulator_vaux2,
+	.vdac		= &am3517_crane_regulator_vdac,
+	.vpll		= &am3517_crane_regulator_vpll,
+	.board_tps65910_config = am3517_crane_tps65910_config,
 };
-
 
 static struct platform_device tps65910_rtc_device = {
 	.name = "tps65910_rtc",
@@ -575,10 +621,10 @@ static struct platform_device tps65910_rtc_device = {
 
 static struct i2c_board_info __initdata am3517crane_i2c1_boardinfo[] = {
 	{
-	I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID0),
-	.flags          = I2C_CLIENT_WAKE,
-	.irq            = TPS65910_HOST_IRQ,
-	.platform_data  = &craneboard_tps65910_data,
+		I2C_BOARD_INFO("tps65910", TPS65910_I2C_ID0),
+		.flags          = I2C_CLIENT_WAKE,
+		.irq            = TPS65910_HOST_IRQ,
+		.platform_data  = &am3517_crane_tps65910_data,
 	},
 };
 
@@ -697,8 +743,10 @@ static void __init am3517_crane_init(void)
 	omap_serial_init();
 	am3517crane_flash_init();
 	usb_musb_init();
+
 	if( platform_device_register(&tps65910_rtc_device) < 0)
 		printk("Unable to register RTC platform device\n");
+
 	/* Configure GPIO for EHCI port */
 	omap_mux_init_gpio(35, OMAP_PIN_OUTPUT);
 	gpio_request(35, "usb_ehci_enable");
@@ -706,8 +754,6 @@ static void __init am3517_crane_init(void)
 	gpio_set_value(35, 1);
 	omap_mux_init_gpio(38, OMAP_PIN_OUTPUT);
 	usb_ehci_init(&ehci_pdata);
-
-	i2c_register_board_info(1, NULL,0);
 
 	/* DSS */
 	am3517_crane_display_init();
