@@ -26,7 +26,7 @@ static struct omap_video_timings generic_panel_timings = {
 	/* 640 x 480 @ 60 Hz  Reduced blanking VESA CVT 0.31M3-R */
 	.x_res		= 640,
 	.y_res		= 480,
-	.pixel_clock	= 23500,
+	.pixel_clock	= 24000,
 	.hfp		= 48,
 	.hsw		= 32,
 	.hbp		= 80,
@@ -37,7 +37,7 @@ static struct omap_video_timings generic_panel_timings = {
 
 static int generic_panel_probe(struct omap_dss_device *dssdev)
 {
-	dssdev->panel.config = OMAP_DSS_LCD_TFT;
+	dssdev->panel.config = (OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS | OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC);
 	dssdev->panel.timings = generic_panel_timings;
 
 	return 0;
