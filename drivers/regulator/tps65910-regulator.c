@@ -84,7 +84,7 @@ static const u16 VDD2_VSEL_table[] = {
 	1200, 1212, 1225, 1237, 1250, 1262, 1275, 1287,
 	1300, 1312, 1325, 1337, 1350, 1362, 1375, 1387,
 	1400, 1412, 1425, 1437, 1450, 1462, 1475, 1487,
-	1500,
+	1500, 2200, 3300,
 };
 
 /* TPS65910 VDD3 */
@@ -140,11 +140,10 @@ static const u16 VRTC_VSEL_table[] = {
 
 static inline int
 tps65910reg_read(struct tps65910reg_info *info, unsigned slave_addr,
-		unsigned offset)
+		u8 offset)
 {
 	u8 value;
 	int status;
-
 	status = tps65910_i2c_read_u8(slave_addr, &value, offset);
 
 	return (status < 0) ? status : value;
@@ -152,7 +151,7 @@ tps65910reg_read(struct tps65910reg_info *info, unsigned slave_addr,
 
 static inline int
 tps65910reg_write(struct tps65910reg_info *info, unsigned slave_addr,
-		unsigned offset, u8 value)
+		u8 offset, u8 value)
 {
 	if (0 == tps65910_i2c_write_u8(slave_addr, value, offset))
 		return 0;
@@ -170,10 +169,13 @@ static u8 tps65910reg_find_offset(u8 regulator_id)
 		offset =  TPS65910_REG_VIO;
 		break;
 	case TPS65910_VDD1:
-		offset =  TPS65910_REG_VDD1;
+		offset =  TPS65910_REG_VDD1_OP;
 		break;
 	case TPS65910_VDD2:
-		offset =  TPS65910_REG_VDD2;
+		offset =  TPS65910_REG_VDD2_OP;
+		break;
+	case TPS65910_VDD3:
+		offset =  TPS65910_REG_VDD3;
 		break;
 	case TPS65910_VDIG1:
 		offset =  TPS65910_REG_VDIG1;
@@ -230,7 +232,6 @@ static int tps65910reg_enable(struct regulator_dev *rdev)
 
 	int	val;
 	u8   	offset;
-
 	struct tps65910reg_info *info = rdev_get_drvdata(rdev);
 
 	offset = tps65910reg_find_offset(info->id);
@@ -311,11 +312,9 @@ static int tps65910reg_set_mode(struct regulator_dev *rdev, unsigned mode)
 	u8 	val;
 
 	offset = tps65910reg_find_offset(info->id);
-
 	val = tps65910reg_read(info, TPS65910_I2C_ID0, offset);
 
 	if (val < 0) {
-
 		printk(KERN_ERR"Unable to read TPS65910 Reg at offset \
 			 = 0x%x\n", offset);
 		return -EIO;
@@ -345,12 +344,21 @@ int tps65910_ldo_list_voltage(struct regulator_dev *rdev, unsigned index)
 static int get_voltage_index(int ldo_id, int uv)
 {
 	u16 i = 0;
-	u16 *ptr;
+	u16 *ptr = NULL;
+
+	uv = uv/1000;
 
 	if (((ldo_id == TPS65910_VDD1) || (ldo_id == TPS65910_VDD2))) {
-		for (i = 0; i < 72; i++) {
-			if (VDD1_VSEL_table[i] == uv)
-				return i;
+		/* For VDD2  2.2 and  3.3 V */
+		if(ldo_id == TPS65910_VDD2 &&
+			(uv == 3300000 || uv == 2200000)) {
+			return 43;
+		} else {
+			for (i = 0; i < 72; i++) {
+
+				if (VDD1_VSEL_table[i] == uv)
+					return i;
+			}
 		}
 		if (i == 72)
 			return -1;
@@ -359,6 +367,9 @@ static int get_voltage_index(int ldo_id, int uv)
 	/* Lookup table to match LDO volatge to Index*/
 	switch (ldo_id) {
 
+	case TPS65910_VIO:
+		ptr = (u16 *)&VIO_VSEL_table[0];
+		break;
 	case TPS65910_VDIG1:
 		ptr = (u16 *)&VDIG1_VSEL_table[0];
 		break;
@@ -383,13 +394,19 @@ static int get_voltage_index(int ldo_id, int uv)
 	case TPS65910_VPLL:
 		ptr = (u16 *)&VPLL_VSEL_table[0];
 		break;
+	default:
+		ptr = NULL;
+		break;
 	}
 
-	for (i = 0; i < 4; i++) {
-		if (*ptr++  == uv)
-			return i;
+	if ( ptr != NULL ) {
+		for (i = 0; i < 4; i++) {
+			if (*ptr++  == uv){
+				return i;
+			}
+		}
 	}
-	if (i == 4)
+	if ( ptr == NULL || i == 4)
 		return -1;
 	/* For warning */
 	return -1;
@@ -407,29 +424,53 @@ tps65910_ldo_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV)
 	offset = tps65910reg_find_offset(info->id);
 
 	val = tps65910reg_read(info, TPS65910_I2C_ID0, offset);
-
 	if (val < 0) {
-
 		printk(KERN_ERR"Unable to read TPS65910 Reg at offset = 0x%x\n",
 				offset);
 		return -EIO;
 	}
 
+	if(rdev->constraints) {
+		index = get_voltage_index(info->id, rdev->constraints->min_uV);
+
+		if (info->id == TPS65910_VDD1 || info->id == TPS65910_VDD2) {
+			val |= index;
+			return tps65910reg_write(info, TPS65910_I2C_ID0,
+							offset, val);
+		}else {
+		val = 2 << index;
+		val |= 0x01;
+		return tps65910reg_write(info, TPS65910_I2C_ID0,
+							offset, val);
+		}
+	} else {
+		return 0;
+	}
+
 	for (vsel = 0; vsel < info->table_len; vsel++) {
+
 		int mV = info->table[vsel];
 		int uV;
 
 		uV = mV * 1000;
+		if( info == NULL) {
+			return 0;
+		}
 		index = get_voltage_index(info->id, uV);
-		if (index < 0 || index > 3) {
+		/* For VDD1 and VDD2 */
+		if (info->id == TPS65910_VDD1 || info->id == TPS65910_VDD2) {
+			return tps65910reg_write(info, TPS65910_I2C_ID0,
+							offset, val);
+		}
+		val &= 0xF3;
+		val =  2 << index;
+		val |= 0x01;
+		if ( index < 0) {
 			printk(KERN_ERR "Invaild voltage for LDO \n");
 			return	EINVAL;
 		}
-		val &= 0xF3;
-		val |= index;
 		return tps65910reg_write(info, TPS65910_I2C_ID0, offset, val);
 	}
-
 	return -EINVAL;
 }
 
@@ -554,7 +595,6 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 	struct regulator_init_data      *initdata;
 	struct regulation_constraints   *c;
 	struct regulator_dev            *rdev;
-	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 
 	for (i = 0, info = NULL; i < ARRAY_SIZE(tps65910_regs); i++) {
 		if (tps65910_regs[i].desc.id != pdev->id)
@@ -562,7 +602,6 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 		info = tps65910_regs + i;
 		break;
 	}
-	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 	if (!info)
 		return -ENODEV;
 
@@ -570,7 +609,6 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 	if (!initdata)
 		return -EINVAL;
 
-	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 	/* Constrain board-specific capabilities according to what
 	 * this driver and the chip itself can actually do.
 	 */
@@ -580,7 +618,6 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 		| REGULATOR_CHANGE_MODE
 		| REGULATOR_CHANGE_STATUS;
 
-	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 	switch (pdev->id) {
 	case TPS65910_REG_VIO:
 	case TPS65910_REG_VDD1:
@@ -595,7 +632,6 @@ static int tps65910_regulator_probe(struct platform_device *pdev)
 	default:
 		break;
 	}
-	printk(" Inside %s line %d \n",__FUNCTION__,__LINE__);
 
 	rdev = regulator_register(&info->desc, &pdev->dev, initdata, info);
 
@@ -615,10 +651,9 @@ static int __devexit tps65910_regulator_remove(struct platform_device *pdev)
 	return 0;
 }
 
-
 static struct platform_driver tps65910_regulator_driver = {
 	.probe          = tps65910_regulator_probe,
-	.remove         = __devexit_p(tps65910_regulator_remove),
+	.remove         = tps65910_regulator_remove,
 	.driver.name    = "tps65910_regulator",
 	.driver.owner   = THIS_MODULE,
 };
@@ -627,7 +662,7 @@ static int __init tps65910_regulator_init(void)
 {
 	return platform_driver_register(&tps65910_regulator_driver);
 }
-subsys_initcall(tps65910_regulator_init);
+module_init(tps65910_regulator_init);
 
 static void __exit tps65910_regulator_exit(void)
 {

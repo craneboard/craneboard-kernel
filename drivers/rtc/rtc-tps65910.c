@@ -55,6 +55,11 @@
 
 /* REG_SECONDS_REG through REG_YEARS_REG is how many registers? */
 #define ALL_TIME_REGS				6
+
+extern int tps65910_add_irq_work(int irq,
+                void (*handler)(void *data));
+
+
 /*
  * Supports 1 byte read from TPS65910 RTC register.
  */
@@ -98,17 +103,11 @@ static int set_rtc_irq_bit(unsigned char bit)
 	unsigned char val;
 	int ret;
 
-//	val = rtc_irq_bits | bit;
+	val = rtc_irq_bits | bit;
 	val |= bit;
 	ret = tps65910_rtc_write_u8(val, TPS65910_REG_RTC_INTERRUPTS);
 	if (ret == 0)
 		rtc_irq_bits = val;
-
-	val = 0;
-	tps65910_rtc_read_u8(&val, TPS65910_REG_RTC_INTERRUPTS);
-	printk( " TPS65910_REG_RTC_INTERRUPTS 0x%x\n",val);
-	tps65910_rtc_read_u8(&val, TPS65910_REG_INT_MSK);
-	printk( "TPS65910_REG_INT_MSK 0x%x\n",val);
 
 	return ret;
 }
@@ -431,8 +430,9 @@ struct work_struct rtc_wq;
 unsigned long rtc_events;
 struct rtc_device *global_rtc;
 
-static void rtc_work(struct work_struct *work)
+void  rtc_work (void  *data)
 {
+
 	int res;
 	u8 rd_reg;
 	unsigned long events = 0;
@@ -452,47 +452,32 @@ static void rtc_work(struct work_struct *work)
 				TPS65910_REG_INT_STS);
 		if (res < 0)
 			goto out;
+
+		/*Dummy read -- mandatory for status register*/
+		res = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_STATUS);
+		mdelay(100);
+		res = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_STATUS);
+		res = tps65910_rtc_write_u8(rd_reg, TPS65910_REG_RTC_STATUS);
+
 		rtc_events |= RTC_IRQF | RTC_AF;
 	} else if (rd_reg & TPS65910_RTC_PERIOD_IT) {
 		res = tps65910_rtc_write_u8(rd_reg | TPS65910_RTC_PERIOD_IT,
 				TPS65910_REG_INT_STS);
 		if (res < 0)
 			goto out;
+
+		/*Dummy read -- mandatory for status register*/
+		res = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_STATUS);
+		mdelay(100);
+		res = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_STATUS);
+		rd_reg &= 0xC3;
+		res = tps65910_rtc_write_u8(rd_reg, TPS65910_REG_RTC_STATUS);
 		rtc_events |= RTC_IRQF | RTC_UF;
 	}
-
-	/*Dummy read -- mandatory for status register*/
-	res = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_STATUS);
-	mdelay(100);
-	res = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_STATUS);
-
-	res = tps65910_rtc_write_u8(rd_reg, TPS65910_REG_RTC_STATUS);
-
 out:
-	enable_irq(INT_34XX_SYS_NIRQ);
-
 	/* Notify RTC core on event */
 	events = rtc_events;
 	rtc_update_irq(global_rtc, 1, events);
-}
-
-static irqreturn_t tps65910_rtc_interrupt(int irq, void *rtc)
-{
-	int ret = IRQ_NONE;
-
-
-#ifdef CONFIG_LOCKDEP
-	/* WORKAROUND for lockdep forcing IRQF_DISABLED on us, which
-	 * we don't want and can't tolerate.  Although it might be
-	 * friendlier not to borrow this thread context...
-	 */
-	local_irq_enable();
-#endif
-	disable_irq_nosync(irq);
-	schedule_work(&rtc_wq);
-
-	ret = IRQ_HANDLED;
-	return ret;
 }
 
 static struct rtc_class_ops tps65910_rtc_ops = {
@@ -509,11 +494,7 @@ static int __devinit tps65910_rtc_probe(struct platform_device *pdev)
 {
 	struct rtc_device *rtc;
 	int ret = 0;
-	int irq = INT_34XX_SYS_NIRQ;
 	u8 rd_reg;
-
-	if (irq < 0)
-		return -EINVAL;
 
 	rtc = rtc_device_register(pdev->name,
 			&pdev->dev, &tps65910_rtc_ops, THIS_MODULE);
@@ -528,7 +509,6 @@ static int __devinit tps65910_rtc_probe(struct platform_device *pdev)
 	printk("TPS65910 RTC device successfully registered\n");
 
 	platform_set_drvdata(pdev, rtc);
-	INIT_WORK(&rtc_wq, rtc_work);
 
 	/* Take rtc out of reset */
 	tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_DEVCTRL);
@@ -568,36 +548,32 @@ static int __devinit tps65910_rtc_probe(struct platform_device *pdev)
 	}
 
 	global_rtc = rtc;
-	ret = request_irq(INT_34XX_SYS_NIRQ, tps65910_rtc_interrupt,
-			IRQF_TRIGGER_HIGH,
-			dev_name(&rtc->dev), rtc);
-	if (ret < 0) {
-		dev_err(&pdev->dev, "IRQ is not free.\n");
-		goto out1;
-	}
+
+	/* Link RTC IRQ handler to TPS65910 Core */
+	tps65910_add_irq_work(TPS65910_RTC_ALARM_IRQ,rtc_work);
+	tps65910_add_irq_work(TPS65910_RTC_PERIOD_IRQ,rtc_work);
+
 	/* Check RTC module status, Enable if it is off */
 	ret = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_CTRL);
 	if (ret < 0)
-		goto out2;
+		goto out1;
 
 	if (!(rd_reg & BIT_RTC_CTRL_REG_STOP_RTC_M)) {
 		dev_info(&pdev->dev, "Enabling TPS65910-RTC.\n");
 		rd_reg |= BIT_RTC_CTRL_REG_STOP_RTC_M;
 		ret = tps65910_rtc_write_u8(rd_reg, TPS65910_REG_RTC_CTRL);
 		if (ret < 0)
-			goto out2;
+			goto out1;
 	}
 
 	/* init cached IRQ enable bits */
 	ret = tps65910_rtc_read_u8(&rtc_irq_bits, TPS65910_REG_RTC_INTERRUPTS);
 	if (ret < 0)
-		goto out2;
+		goto out1;
 
 	tps65910_rtc_write_u8(0x3F, TPS65910_REG_INT_MSK);
 	return ret;
 
-out2:
-	free_irq(irq, rtc);
 out1:
 	rtc_device_unregister(rtc);
 out0:
@@ -628,7 +604,8 @@ static int __devexit tps65910_rtc_remove(struct platform_device *pdev)
 static void tps65910_rtc_shutdown(struct platform_device *pdev)
 {
 	/* mask timer interrupts, but leave alarm interrupts on to enable
-	   power-on when alarm is triggered */
+	 * power-on when alarm is triggered
+	 */
 	mask_rtc_irq_bit(BIT_RTC_INTERRUPTS_REG_IT_TIMER_M);
 }
 
@@ -640,7 +617,6 @@ static
 int tps65910_rtc_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	irqstat = rtc_irq_bits;
-
 	mask_rtc_irq_bit(BIT_RTC_INTERRUPTS_REG_IT_TIMER_M);
 	return 0;
 }

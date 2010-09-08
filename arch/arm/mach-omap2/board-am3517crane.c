@@ -436,6 +436,7 @@ static struct regulator_init_data am3517_crane_regulator_vaux2 = {
 static struct regulator_consumer_supply am3517_crane_vdac_supplies[] = {
 	{
 		.supply = "vdda_dac",
+		.dev    = &am3517_crane_dss_device.dev,
 	},
 };
 
@@ -444,7 +445,7 @@ static struct regulator_init_data am3517_crane_regulator_vdac = {
 		.min_uV = 1800000,
 		.max_uV = 1800000,
 		.valid_modes_mask = REGULATOR_MODE_NORMAL,
-		.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+		.valid_ops_mask = REGULATOR_CHANGE_MODE,
 		.always_on = true,
 		.apply_uV = true,
 	},
@@ -533,8 +534,6 @@ static int am3517_crane_tps65910_config(struct tps65910_platform_data *pdata)
 	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
 			TPS65910_REG_VRTC);
 
-	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
-
 	if (err) {
 		printk(KERN_ERR "Unable to write TPS65910_REG_VRTC reg\n");
 		return -EIO;
@@ -543,8 +542,6 @@ static int am3517_crane_tps65910_config(struct tps65910_platform_data *pdata)
 	val = 0;
 	val &= ~TPS65910_RTC_PWDNN;
 	val |= (TPS65910_CK32K_CTRL | TPS65910_SR_CTL_I2C_SEL);
-
-	printk(" Inside %s line %d\n",__FUNCTION__,__LINE__);
 
 	err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
 			TPS65910_REG_DEVCTRL);
@@ -593,7 +590,7 @@ static int am3517_crane_tps65910_config(struct tps65910_platform_data *pdata)
 	return 0;
 }
 
-static struct tps65910_platform_data am3517_crane_tps65910_data = {
+struct tps65910_platform_data am3517_crane_tps65910_data = {
 	.irq_num 	= (unsigned)TPS65910_HOST_IRQ,
 	.gpio  		= NULL,
 	.vio   		= &am3517_crane_regulator_vio,
@@ -609,14 +606,6 @@ static struct tps65910_platform_data am3517_crane_tps65910_data = {
 	.vdac		= &am3517_crane_regulator_vdac,
 	.vpll		= &am3517_crane_regulator_vpll,
 	.board_tps65910_config = am3517_crane_tps65910_config,
-};
-
-static struct platform_device tps65910_rtc_device = {
-	.name = "tps65910_rtc",
-	.id   = -1,
-	.dev  = {
-			.platform_data = NULL,
-		},
 };
 
 static struct i2c_board_info __initdata am3517crane_i2c1_boardinfo[] = {
@@ -743,9 +732,6 @@ static void __init am3517_crane_init(void)
 	omap_serial_init();
 	am3517crane_flash_init();
 	usb_musb_init();
-
-	if( platform_device_register(&tps65910_rtc_device) < 0)
-		printk("Unable to register RTC platform device\n");
 
 	/* Configure GPIO for EHCI port */
 	omap_mux_init_gpio(35, OMAP_PIN_OUTPUT);
