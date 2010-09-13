@@ -157,17 +157,12 @@ static struct emac_platform_data am3517_crane_emac_pdata = {
 static int __init eth_addr_setup(char *str)
 {
 	int i;
-	long val;
 
 	if (str == NULL)
 		return 0;
-	for (i = 0; i < ETH_ALEN; i++) {
-		val = 0;
-		if (0 == strict_strtol(&str[i*3], 16, &val))
-			am3517_crane_emac_pdata.mac_addr[i] = val;
-		else
-			printk(KERN_ERR "strict_strtol failed \n");
-	}
+	for (i = 0; i < ETH_ALEN; i++)
+		am3517_crane_emac_pdata.mac_addr[i] = simple_strtol(&str[i*3],
+							(char **)NULL, 16);
 	return 1;
 }
 
