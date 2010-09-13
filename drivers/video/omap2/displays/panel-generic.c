@@ -37,7 +37,8 @@ static struct omap_video_timings generic_panel_timings = {
 
 static int generic_panel_probe(struct omap_dss_device *dssdev)
 {
-	dssdev->panel.config = (OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS | OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC);
+	dssdev->panel.config = (OMAP_DSS_LCD_TFT | OMAP_DSS_LCD_IVS |
+				OMAP_DSS_LCD_IHS | OMAP_DSS_LCD_IPC);
 	dssdev->panel.timings = generic_panel_timings;
 
 	return 0;

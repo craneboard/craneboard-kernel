@@ -56,91 +56,92 @@
 #define NAND_BLOCK_SIZE        SZ_128K
 
 static struct mtd_partition am3517crane_nand_partitions[] = {
-/* All the partition sizes are listed in terms of NAND block size */
-{
-       .name           = "xloader-nand",
-       .offset         = 0,
-       .size           = 4*(SZ_128K),
-       .mask_flags     = MTD_WRITEABLE
-},
-{
-       .name           = "uboot-nand",
-       .offset         = MTDPART_OFS_APPEND,
-       .size           = 14*(SZ_128K),
-       .mask_flags     = MTD_WRITEABLE
-},
-{
-       .name           = "params-nand",
-       .offset         = MTDPART_OFS_APPEND,
-       .size           = 2*(SZ_128K)
-},
-{
-       .name           = "linux-nand",
-       .offset         = MTDPART_OFS_APPEND,
-       .size           = 40*(SZ_128K)
-},
-{
-       .name           = "jffs2-nand",
-       .size           = MTDPART_SIZ_FULL,
-       .offset         = MTDPART_OFS_APPEND,
-},
+	/* All the partition sizes are listed in terms of NAND block size */
+	{
+		.name           = "xloader-nand",
+		.offset         = 0,
+		.size           = 4*(SZ_128K),
+		.mask_flags     = MTD_WRITEABLE
+	},
+	{
+		.name           = "uboot-nand",
+		.offset         = MTDPART_OFS_APPEND,
+		.size           = 14*(SZ_128K),
+		.mask_flags     = MTD_WRITEABLE
+	},
+	{
+		.name           = "params-nand",
+		.offset         = MTDPART_OFS_APPEND,
+		.size           = 2*(SZ_128K)
+	},
+	{
+		.name           = "linux-nand",
+		.offset         = MTDPART_OFS_APPEND,
+		.size           = 40*(SZ_128K)
+	},
+	{
+		.name           = "jffs2-nand",
+		.size           = MTDPART_SIZ_FULL,
+		.offset         = MTDPART_OFS_APPEND,
+	},
 };
 
 static struct omap_nand_platform_data am3517crane_nand_data = {
-       .parts          = am3517crane_nand_partitions,
-       .nr_parts       = ARRAY_SIZE(am3517crane_nand_partitions),
-       .nand_setup     = NULL,
-       .dma_channel    = -1,           /* disable DMA in OMAP NAND driver */
-       .dev_ready      = NULL,
+	.parts          = am3517crane_nand_partitions,
+	.nr_parts       = ARRAY_SIZE(am3517crane_nand_partitions),
+	.nand_setup     = NULL,
+	.dma_channel    = -1,           /* disable DMA in OMAP NAND driver */
+	.dev_ready      = NULL,
 };
 
 static struct resource am3517crane_nand_resource = {
-       .flags          = IORESOURCE_MEM,
+	.flags          = IORESOURCE_MEM,
 };
 
 static struct platform_device am3517crane_nand_device = {
-       .name           = "omap2-nand",
-       .id             = 0,
-       .dev            = {
-                       .platform_data  = &am3517crane_nand_data,
-       },
-       .num_resources  = 1,
-       .resource       = &am3517crane_nand_resource,
+	.name           = "omap2-nand",
+	.id             = 0,
+	.dev            = {
+		.platform_data  = &am3517crane_nand_data,
+	},
+	.num_resources  = 1,
+	.resource       = &am3517crane_nand_resource,
 };
 
 void __init am3517crane_flash_init(void)
 {
-       u8 cs = 0;
-       u8 nandcs = GPMC_CS_NUM + 1;
-       u32 gpmc_base_add = OMAP34XX_GPMC_VIRT;
+	u8 cs = 0;
+	u8 nandcs = GPMC_CS_NUM + 1;
+	u32 gpmc_base_add = OMAP34XX_GPMC_VIRT;
 
-       while (cs < GPMC_CS_NUM) {
-               u32 ret = 0;
-               ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
+	while (cs < GPMC_CS_NUM) {
+		u32 ret = 0;
+		ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
 
-               if ((ret & 0xC00) == 0x800) {
-                       /* Found it!! */
-                       if (nandcs > GPMC_CS_NUM)
-                               nandcs = cs;
-               }
-               cs++;
-       }
-       if (nandcs > GPMC_CS_NUM) {
-               printk(KERN_INFO "NAND: Unable to find configuration "
-                       " in GPMC\n ");
-               return;
-       }
+		if ((ret & 0xC00) == 0x800) {
+			/* Found it!! */
+			if (nandcs > GPMC_CS_NUM)
+				nandcs = cs;
+		}
+		cs++;
+	}
+	if (nandcs > GPMC_CS_NUM) {
+		printk(KERN_INFO "NAND: Unable to find configuration "
+				" in GPMC\n ");
+		return;
+	}
 
-       if (nandcs < GPMC_CS_NUM) {
-               am3517crane_nand_data.cs   = nandcs;
-               am3517crane_nand_data.gpmc_cs_baseaddr = (void *)(gpmc_base_add +
-                                       GPMC_CS0_BASE + nandcs*GPMC_CS_SIZE);
-               am3517crane_nand_data.gpmc_baseaddr   = (void *) (gpmc_base_add);
+	if (nandcs < GPMC_CS_NUM) {
+		am3517crane_nand_data.cs   = nandcs;
+		am3517crane_nand_data.gpmc_cs_baseaddr =
+		(void *)(gpmc_base_add + GPMC_CS0_BASE + nandcs*GPMC_CS_SIZE);
 
-               if (platform_device_register(&am3517crane_nand_device) < 0)
-                       printk(KERN_ERR "Unable to register NAND device\n");
+		am3517crane_nand_data.gpmc_baseaddr = (void *)(gpmc_base_add);
 
-       }
+		if (platform_device_register(&am3517crane_nand_device) < 0)
+			printk(KERN_ERR "Unable to register NAND device\n");
+
+	}
 }
 
 
@@ -157,11 +158,11 @@ static int __init eth_addr_setup(char *str)
 {
 	int i;
 
-	if(str == NULL)
+	if (str == NULL)
 		return 0;
-	for(i = 0; i <  ETH_ALEN; i++)
-		am3517_crane_emac_pdata.mac_addr[i] = simple_strtol(&str[i*3],
-							(char **)NULL, 16);
+	for (i = 0; i <  ETH_ALEN; i++)
+		am3517_crane_emac_pdata.mac_addr[i] = strict_strtol(&str[i*3],
+				16, (long *)NULL);
 	return 1;
 }
 
@@ -209,9 +210,11 @@ static void am3517_enable_ethernet_int(void)
 
 	regval = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
 	regval = (regval | AM35XX_CPGMAC_C0_RX_PULSE_CLR |
-		AM35XX_CPGMAC_C0_TX_PULSE_CLR | AM35XX_CPGMAC_C0_MISC_PULSE_CLR |
-		AM35XX_CPGMAC_C0_RX_THRESH_CLR );
-	omap_ctrl_writel(regval,AM35XX_CONTROL_LVL_INTR_CLEAR);
+		AM35XX_CPGMAC_C0_TX_PULSE_CLR |
+		AM35XX_CPGMAC_C0_MISC_PULSE_CLR |
+		AM35XX_CPGMAC_C0_RX_THRESH_CLR);
+
+	omap_ctrl_writel(regval, AM35XX_CONTROL_LVL_INTR_CLEAR);
 	regval = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
 }
 
@@ -221,8 +224,8 @@ static void am3517_disable_ethernet_int(void)
 
 	regval = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
 	regval = (regval | AM35XX_CPGMAC_C0_RX_PULSE_CLR |
-		AM35XX_CPGMAC_C0_TX_PULSE_CLR);
-	omap_ctrl_writel(regval,AM35XX_CONTROL_LVL_INTR_CLEAR);
+			AM35XX_CPGMAC_C0_TX_PULSE_CLR);
+	omap_ctrl_writel(regval, AM35XX_CONTROL_LVL_INTR_CLEAR);
 	regval = omap_ctrl_readl(AM35XX_CONTROL_LVL_INTR_CLEAR);
 }
 
@@ -244,7 +247,7 @@ void am3517_crane_ethernet_init(struct emac_platform_data *pdata)
 
 	regval = omap_ctrl_readl(AM35XX_CONTROL_IP_SW_RESET);
 	regval = regval & (~(AM35XX_CPGMACSS_SW_RST));
-	omap_ctrl_writel(regval,AM35XX_CONTROL_IP_SW_RESET);
+	omap_ctrl_writel(regval, AM35XX_CONTROL_IP_SW_RESET);
 	regval = omap_ctrl_readl(AM35XX_CONTROL_IP_SW_RESET);
 
 	return ;
@@ -252,7 +255,7 @@ void am3517_crane_ethernet_init(struct emac_platform_data *pdata)
 
 static void __init am3517_crane_display_init(void)
 {
-	omap_mux_init_gpio(52,OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(52, OMAP_PIN_OUTPUT);
 	gpio_request(52, "dvi_enable");
 	gpio_direction_output(52, 1);
 }
@@ -263,7 +266,7 @@ static struct omap_dss_device am3517_crane_tv_device = {
 	.type 			= OMAP_DISPLAY_TYPE_VENC,
 	.name 			= "tv",
 	.driver_name		= "venc",
-        .phy.venc.type          = OMAP_DSS_VENC_TYPE_COMPOSITE,
+	.phy.venc.type          = OMAP_DSS_VENC_TYPE_COMPOSITE,
 	.platform_enable	= NULL,
 	.platform_disable	= NULL,
 };
@@ -584,7 +587,7 @@ static int am3517_crane_tps65910_config(struct tps65910_platform_data *pdata)
 	/* initilize all ISR work as NULL, specific driver will
 	 * assign function(s) later.
 	 */
-	for (i=0; i < TPS65910_MAX_IRQS; i++)
+	for (i = 0; i < TPS65910_MAX_IRQS; i++)
 		pdata->handlers[i] = NULL;
 
 	return 0;
@@ -621,9 +624,9 @@ static struct i2c_board_info __initdata am3517crane_i2c1_boardinfo[] = {
 static int __init am3517_crane_i2c_init(void)
 {
 	omap_register_i2c_bus(1, 400, am3517crane_i2c1_boardinfo,
-			 ARRAY_SIZE(am3517crane_i2c1_boardinfo));
-	omap_register_i2c_bus(2, 400, NULL,0);
-	omap_register_i2c_bus(3, 400, NULL,0);
+			ARRAY_SIZE(am3517crane_i2c1_boardinfo));
+	omap_register_i2c_bus(2, 400, NULL, 0);
+	omap_register_i2c_bus(3, 400, NULL, 0);
 
 	return 0;
 }
@@ -632,38 +635,38 @@ static int __init am3517_crane_i2c_init(void)
  * HECC information
  */
 static struct resource am3517_hecc_resources[] = {
-        {
-                .start  = AM35XX_IPSS_HECC_BASE,
-                .end    = AM35XX_IPSS_HECC_BASE + 0x3FFF,
-                .flags  = IORESOURCE_MEM,
-        },
-        {
-                .start  = INT_35XX_HECC0_IRQ,
-                .end    = INT_35XX_HECC0_IRQ,
-                .flags  = IORESOURCE_IRQ,
-        },
+	{
+		.start  = AM35XX_IPSS_HECC_BASE,
+		.end    = AM35XX_IPSS_HECC_BASE + 0x3FFF,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.start  = INT_35XX_HECC0_IRQ,
+		.end    = INT_35XX_HECC0_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
 };
 
 static struct platform_device am3517_hecc_device = {
-        .name           = "ti_hecc",
-        .id             = 1,
-        .num_resources  = ARRAY_SIZE(am3517_hecc_resources),
-        .resource       = am3517_hecc_resources,
+	.name           = "ti_hecc",
+	.id             = 1,
+	.num_resources  = ARRAY_SIZE(am3517_hecc_resources),
+	.resource       = am3517_hecc_resources,
 };
 
 static struct ti_hecc_platform_data am3517_crane_hecc_pdata = {
-        .scc_hecc_offset        = AM35XX_HECC_SCC_HECC_OFFSET,
-        .scc_ram_offset         = AM35XX_HECC_SCC_RAM_OFFSET,
-        .hecc_ram_offset        = AM35XX_HECC_RAM_OFFSET,
-        .mbx_offset            = AM35XX_HECC_MBOX_OFFSET,
-        .int_line               = AM35XX_HECC_INT_LINE,
-        .version                = AM35XX_HECC_VERSION,
+	.scc_hecc_offset        = AM35XX_HECC_SCC_HECC_OFFSET,
+	.scc_ram_offset         = AM35XX_HECC_SCC_RAM_OFFSET,
+	.hecc_ram_offset        = AM35XX_HECC_RAM_OFFSET,
+	.mbx_offset            = AM35XX_HECC_MBOX_OFFSET,
+	.int_line               = AM35XX_HECC_INT_LINE,
+	.version                = AM35XX_HECC_VERSION,
 };
 
 static void am3517_crane_hecc_init(struct ti_hecc_platform_data *pdata)
 {
-        am3517_hecc_device.dev.platform_data = pdata;
-        platform_device_register(&am3517_hecc_device);
+	am3517_hecc_device.dev.platform_data = pdata;
+	platform_device_register(&am3517_hecc_device);
 }
 
 
@@ -701,11 +704,11 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initdata = {
 
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux board_mux[] __initdata = {
-        /* USB OTG DRVVBUS offset = 0x212 */
-        OMAP3_MUX(CHASSIS_DMAREQ3, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLDOWN),
-        OMAP3_MUX(MCBSP_CLKS, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLUP),
-        OMAP3_MUX(GPMC_NCS4, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
-        { .reg_offset = OMAP_MUX_TERMINATOR },
+	/* USB OTG DRVVBUS offset = 0x212 */
+	OMAP3_MUX(CHASSIS_DMAREQ3, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLDOWN),
+	OMAP3_MUX(MCBSP_CLKS, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLUP),
+	OMAP3_MUX(GPMC_NCS4, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
+	{ .reg_offset = OMAP_MUX_TERMINATOR },
 };
 #else
 #define board_mux       NULL
@@ -727,7 +730,7 @@ static void __init am3517_crane_init(void)
 	am3517_crane_i2c_init();
 	omap3_mux_init(board_mux, OMAP_PACKAGE_CBB);
 	platform_add_devices(am3517_crane_devices,
-				ARRAY_SIZE(am3517_crane_devices));
+			ARRAY_SIZE(am3517_crane_devices));
 
 	omap_serial_init();
 	am3517crane_flash_init();

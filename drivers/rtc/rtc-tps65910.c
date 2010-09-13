@@ -56,10 +56,6 @@
 /* REG_SECONDS_REG through REG_YEARS_REG is how many registers? */
 #define ALL_TIME_REGS				6
 
-extern int tps65910_add_irq_work(int irq,
-                void (*handler)(void *data));
-
-
 /*
  * Supports 1 byte read from TPS65910 RTC register.
  */
@@ -430,7 +426,7 @@ struct work_struct rtc_wq;
 unsigned long rtc_events;
 struct rtc_device *global_rtc;
 
-void  rtc_work (void  *data)
+void  rtc_work(void  *data)
 {
 
 	int res;
@@ -501,12 +497,12 @@ static int __devinit tps65910_rtc_probe(struct platform_device *pdev)
 
 	if (IS_ERR(rtc)) {
 		ret = PTR_ERR(rtc);
-		dev_err(&pdev->dev, "can't register TPS65910 RTC device, err %ld\n",
-				PTR_ERR(rtc));
+		dev_err(&pdev->dev, "can't register TPS65910 RTC device,\
+					 err %ld\n", PTR_ERR(rtc));
 		goto out0;
 
 	}
-	printk("TPS65910 RTC device successfully registered\n");
+	printk(KERN_INFO "TPS65910 RTC device successfully registered\n");
 
 	platform_set_drvdata(pdev, rtc);
 
@@ -521,8 +517,8 @@ static int __devinit tps65910_rtc_probe(struct platform_device *pdev)
 	tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_STATUS);
 
 	ret = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_STATUS);
-	if (ret < 0){
-		printk("TPS65910 RTC STATUS REG READ FAILED\n");
+	if (ret < 0) {
+		printk(KERN_ERR "TPS65910 RTC STATUS REG READ FAILED\n");
 		goto out1;
 	}
 
@@ -537,21 +533,21 @@ static int __devinit tps65910_rtc_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto out1;
 	ret = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_INT_STS);
-	if (ret < 0){
-		printk("TPS65910 RTC STATUS REG READ FAILED\n");
+	if (ret < 0) {
+		printk(KERN_ERR "TPS65910 RTC STATUS REG READ FAILED\n");
 		goto out1;
 	}
 
-	if (rd_reg & 0x40){
-		printk("pending alarm interrupt!!! clearing!!!");
+	if (rd_reg & 0x40) {
+		printk(KERN_INFO "pending alarm interrupt!!! clearing!!!");
 		tps65910_rtc_write_u8(rd_reg, TPS65910_REG_INT_STS);
 	}
 
 	global_rtc = rtc;
 
 	/* Link RTC IRQ handler to TPS65910 Core */
-	tps65910_add_irq_work(TPS65910_RTC_ALARM_IRQ,rtc_work);
-	tps65910_add_irq_work(TPS65910_RTC_PERIOD_IRQ,rtc_work);
+	tps65910_add_irq_work(TPS65910_RTC_ALARM_IRQ, rtc_work);
+	tps65910_add_irq_work(TPS65910_RTC_PERIOD_IRQ, rtc_work);
 
 	/* Check RTC module status, Enable if it is off */
 	ret = tps65910_rtc_read_u8(&rd_reg, TPS65910_REG_RTC_CTRL);
@@ -613,7 +609,7 @@ static void tps65910_rtc_shutdown(struct platform_device *pdev)
 
 static unsigned char irqstat;
 
-static
+	static
 int tps65910_rtc_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	irqstat = rtc_irq_bits;

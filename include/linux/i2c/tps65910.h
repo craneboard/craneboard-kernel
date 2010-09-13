@@ -265,10 +265,14 @@ struct tps65910_platform_data {
 int tps65910_enable_bbch(u8 voltage);
 int tps65910_disable_bbch(void);
 
+int tps65910_remove_irq_work(int irq);
+int tps65910_add_irq_work(int irq, void (*handler)(void *data));
+
 int tps65910_i2c_write_u8(u8 slave_addr, u8 val, u8 reg);
 int tps65910_i2c_read_u8(u8 slave_addr, u8 *val, u8 reg);
 
 int tps65910_i2c_write(u8 slave_addr, u8 *value, u8 reg, unsigned num_bytes);
 int tps65910_i2c_read(u8 slave_addr, u8 *value, u8 reg, unsigned num_bytes);
+
 #endif /*  __LINUX_I2C_TPS65910_H */
 

@@ -350,7 +350,7 @@ static int get_voltage_index(int ldo_id, int uv)
 
 	if (((ldo_id == TPS65910_VDD1) || (ldo_id == TPS65910_VDD2))) {
 		/* For VDD2  2.2 and  3.3 V */
-		if(ldo_id == TPS65910_VDD2 &&
+		if (ldo_id == TPS65910_VDD2 &&
 			(uv == 3300000 || uv == 2200000)) {
 			return 43;
 		} else {
@@ -399,14 +399,13 @@ static int get_voltage_index(int ldo_id, int uv)
 		break;
 	}
 
-	if ( ptr != NULL ) {
+	if (ptr != NULL) {
 		for (i = 0; i < 4; i++) {
-			if (*ptr++  == uv){
+			if (*ptr++  == uv)
 				return i;
-			}
 		}
 	}
-	if ( ptr == NULL || i == 4)
+	if (ptr == NULL || i == 4)
 		return -1;
 	/* For warning */
 	return -1;
@@ -430,17 +429,17 @@ tps65910_ldo_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV)
 		return -EIO;
 	}
 
-	if(rdev->constraints) {
+	if (rdev->constraints) {
 		index = get_voltage_index(info->id, rdev->constraints->min_uV);
 
 		if (info->id == TPS65910_VDD1 || info->id == TPS65910_VDD2) {
 			val |= index;
 			return tps65910reg_write(info, TPS65910_I2C_ID0,
 							offset, val);
-		}else {
-		val = 2 << index;
-		val |= 0x01;
-		return tps65910reg_write(info, TPS65910_I2C_ID0,
+		} else {
+			val = 2 << index;
+			val |= 0x01;
+			return tps65910reg_write(info, TPS65910_I2C_ID0,
 							offset, val);
 		}
 	} else {
@@ -453,9 +452,9 @@ tps65910_ldo_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV)
 		int uV;
 
 		uV = mV * 1000;
-		if( info == NULL) {
+		if (info == NULL)
 			return 0;
-		}
+
 		index = get_voltage_index(info->id, uV);
 		/* For VDD1 and VDD2 */
 		if (info->id == TPS65910_VDD1 || info->id == TPS65910_VDD2) {
@@ -465,7 +464,7 @@ tps65910_ldo_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV)
 		val &= 0xF3;
 		val =  2 << index;
 		val |= 0x01;
-		if ( index < 0) {
+		if (index < 0) {
 			printk(KERN_ERR "Invaild voltage for LDO \n");
 			return	EINVAL;
 		}

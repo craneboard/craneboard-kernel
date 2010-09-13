@@ -102,8 +102,8 @@ int tps65910_enable_bbch(u8 voltage)
 	int err;
 
 	if (voltage == TPS65910_BBSEL_3P0 || voltage == TPS65910_BBSEL_2P52 ||
-		voltage == TPS65910_BBSEL_3P15 ||
-		voltage == TPS65910_BBSEL_VBAT) {
+			voltage == TPS65910_BBSEL_3P15 ||
+			voltage == TPS65910_BBSEL_VBAT) {
 		val = (voltage | TPS65910_BBCHEN);
 		err = tps65910_i2c_write_u8(TPS65910_I2C_ID0, val,
 				TPS65910_REG_BBCH);
@@ -148,37 +148,38 @@ EXPORT_SYMBOL(tps65910_disable_bbch);
 
 int tps65910_i2c_read(u8 slave_addr, u8 *value, u8 reg, unsigned num_bytes)
 {
-        u8 		val;
-        u32 		ret;
-        struct 		tps65910_client *tps65910;
-        struct i2c_msg *msg;
+	u8 		val;
+	u32 		ret;
+	struct 		tps65910_client *tps65910;
+	struct i2c_msg *msg;
 
-        switch (slave_addr) {
-        case TPS65910_I2C_ID0:
-                tps65910 = &tps65910_modules[0];
-                tps65910->address = TPS65910_I2C_ID0;
-                break;
-        case TPS65910_I2C_ID1:
-                tps65910 = &tps65910_modules[1];
-                tps65910->address = TPS65910_I2C_ID1;
-        default:
-                printk(KERN_ERR "Invalid Slave address for TPS65910\n");
-                return -ENODEV;
-        }
-        mutex_lock(&tps65910->xfer_lock);
-        /* [MSG1] fill the register address data */
-        msg = &tps65910->xfer_msg[0];
-        msg->addr = tps65910->address;
-        msg->len = 1;
-        msg->flags = 0;
-        val = reg;
-        msg->buf = &val;
-        /* [MSG2] fill the data rx buffer */
-        msg = &tps65910->xfer_msg[1];
-        msg->addr = tps65910->address;
-        msg->flags = I2C_M_RD;  /* Read the register value */
-        msg->len = num_bytes;   /* only n bytes */
-        msg->buf = value;
+	switch (slave_addr) {
+	case TPS65910_I2C_ID0:
+		tps65910 = &tps65910_modules[0];
+		tps65910->address = TPS65910_I2C_ID0;
+		break;
+	case TPS65910_I2C_ID1:
+		tps65910 = &tps65910_modules[1];
+		tps65910->address = TPS65910_I2C_ID1;
+		break;
+	default:
+		printk(KERN_ERR "Invalid Slave address for TPS65910\n");
+		return -ENODEV;
+	}
+	mutex_lock(&tps65910->xfer_lock);
+	/* [MSG1] fill the register address data */
+	msg = &tps65910->xfer_msg[0];
+	msg->addr = tps65910->address;
+	msg->len = 1;
+	msg->flags = 0;
+	val = reg;
+	msg->buf = &val;
+	/* [MSG2] fill the data rx buffer */
+	msg = &tps65910->xfer_msg[1];
+	msg->addr = tps65910->address;
+	msg->flags = I2C_M_RD;  /* Read the register value */
+	msg->len = num_bytes;   /* only n bytes */
+	msg->buf = value;
 
 	ret = i2c_transfer(tps65910->client->adapter, tps65910->xfer_msg, 2);
 	mutex_unlock(&tps65910->xfer_lock);
@@ -197,44 +198,45 @@ EXPORT_SYMBOL(tps65910_i2c_read);
 
 int tps65910_i2c_write(u8 slave_addr, u8 *value, u8 reg, unsigned num_bytes)
 {
-        int ret;
-        struct tps65910_client *tps65910;
-        struct i2c_msg *msg;
-        u8 write_buf[66]; /* Max 65 Regs + offset*/
+	int ret;
+	struct tps65910_client *tps65910;
+	struct i2c_msg *msg;
+	u8 write_buf[66]; /* Max 65 Regs + offset*/
 
-        switch (slave_addr) {
-        case TPS65910_I2C_ID0:
-                tps65910 = &tps65910_modules[0];
-                tps65910->address = TPS65910_I2C_ID0;
-                break;
-        case TPS65910_I2C_ID1:
-                tps65910 = &tps65910_modules[1];
-                tps65910->address = TPS65910_I2C_ID1;
-        default:
-                printk(KERN_ERR "Invalid Slave address for TPS65910\n");
-                return -ENODEV;
-        }
+	switch (slave_addr) {
+	case TPS65910_I2C_ID0:
+		tps65910 = &tps65910_modules[0];
+		tps65910->address = TPS65910_I2C_ID0;
+		break;
+	case TPS65910_I2C_ID1:
+		tps65910 = &tps65910_modules[1];
+		tps65910->address = TPS65910_I2C_ID1;
+		break;
+	default:
+		printk(KERN_ERR "Invalid Slave address for TPS65910\n");
+		return -ENODEV;
+	}
 
-        mutex_lock(&tps65910->xfer_lock);
-        /* [MSG1]: fill the register address data fill the data Tx buffer */
-        msg = &tps65910->xfer_msg[0];
-        msg->addr = tps65910->address;
-        msg->len = num_bytes + 1;
-        msg->flags = 0;
-        write_buf[0] = reg;
-        memcpy( &write_buf[1],value,num_bytes);
-        msg->buf = &write_buf[0];
-        ret = i2c_transfer(tps65910->client->adapter, tps65910->xfer_msg, 1);
-        mutex_unlock(&tps65910->xfer_lock);
+	mutex_lock(&tps65910->xfer_lock);
+	/* [MSG1]: fill the register address data fill the data Tx buffer */
+	msg = &tps65910->xfer_msg[0];
+	msg->addr = tps65910->address;
+	msg->len = num_bytes + 1;
+	msg->flags = 0;
+	write_buf[0] = reg;
+	memcpy(&write_buf[1], value, num_bytes);
+	msg->buf = &write_buf[0];
+	ret = i2c_transfer(tps65910->client->adapter, tps65910->xfer_msg, 1);
+	mutex_unlock(&tps65910->xfer_lock);
 
-        /* i2c_transfer returns number of messages transferred */
-        if (ret != 1) {
-                pr_err("%s: i2c_write failed to transfer all messages\n",
-                                __func__);
-                return -EIO;
-        } else {
-                return 0;
-        }
+	/* i2c_transfer returns number of messages transferred */
+	if (ret != 1) {
+		pr_err("%s: i2c_write failed to transfer all messages\n",
+				__func__);
+		return -EIO;
+	} else {
+		return 0;
+	}
 }
 EXPORT_SYMBOL(tps65910_i2c_write);
 
@@ -243,20 +245,21 @@ int tps65910_i2c_read_u8(u8 mod_no, u8 *value, u8 reg)
 	struct tps65910_client *tps65910;
 
 	switch (mod_no) {
-		case TPS65910_I2C_ID0:
-			tps65910 = &tps65910_modules[0];
-			tps65910->address = TPS65910_I2C_ID0;
-			break;
-		case TPS65910_I2C_ID1:
-			tps65910 = &tps65910_modules[1];
-			tps65910->address = TPS65910_I2C_ID1;
-		default:
-			printk(KERN_ERR "Invalid Slave address for TPS65910\n");
-			return -ENODEV;
+	case TPS65910_I2C_ID0:
+		tps65910 = &tps65910_modules[0];
+		tps65910->address = TPS65910_I2C_ID0;
+		break;
+	case TPS65910_I2C_ID1:
+		tps65910 = &tps65910_modules[1];
+		tps65910->address = TPS65910_I2C_ID1;
+		break;
+	default:
+		printk(KERN_ERR "Invalid Slave address for TPS65910\n");
+		return -ENODEV;
 	}
 
 	(*value) = i2c_smbus_read_byte_data(tps65910->client, reg);
-	mdelay (10);
+	mdelay(10);
 	if (*value < 0)
 		return -EIO;
 	else
@@ -270,16 +273,17 @@ int tps65910_i2c_write_u8(u8 slave_addr, u8 value, u8 reg)
 	struct tps65910_client *tps65910;
 
 	switch (slave_addr) {
-		case TPS65910_I2C_ID0:
-			tps65910 = &tps65910_modules[0];
-			tps65910->address = TPS65910_I2C_ID0;
-			break;
-		case TPS65910_I2C_ID1:
-			tps65910 = &tps65910_modules[1];
-			tps65910->address = TPS65910_I2C_ID1;
-		default:
-			printk(KERN_ERR "Invalid Slave address for TPS65910\n");
-			return -ENODEV;
+	case TPS65910_I2C_ID0:
+		tps65910 = &tps65910_modules[0];
+		tps65910->address = TPS65910_I2C_ID0;
+		break;
+	case TPS65910_I2C_ID1:
+		tps65910 = &tps65910_modules[1];
+		tps65910->address = TPS65910_I2C_ID1;
+		break;
+	default:
+		printk(KERN_ERR "Invalid Slave address for TPS65910\n");
+		return -ENODEV;
 	}
 	ret = i2c_smbus_write_byte_data(tps65910->client, reg, value);
 	if (ret < 0)
@@ -292,58 +296,58 @@ EXPORT_SYMBOL(tps65910_i2c_write_u8);
 
 int tps65910_enable_irq(int irq)
 {
-	u8  mask =0x00;
+	u8  mask = 0x00;
 
-       if (irq > 7) {
-                irq -= 8;
+	if (irq > 7) {
+		irq -= 8;
 		tps65910_i2c_read_u8(TPS65910_I2C_ID0,
-		&mask, TPS65910_REG_INT_MSK2);
-                mask &= ~(1 << irq);
-                return tps65910_i2c_write_u8(TPS65910_I2C_ID0,
-                                mask,TPS65910_REG_INT_MSK2);
-        } else {
+				&mask, TPS65910_REG_INT_MSK2);
+		mask &= ~(1 << irq);
+		return tps65910_i2c_write_u8(TPS65910_I2C_ID0,
+				mask, TPS65910_REG_INT_MSK2);
+	} else {
 		tps65910_i2c_read_u8(TPS65910_I2C_ID0,
-		&mask, TPS65910_REG_INT_MSK);
-                mask &= ~(1 << irq);
-                return tps65910_i2c_write_u8(TPS65910_I2C_ID0,
-                                mask,TPS65910_REG_INT_MSK);
-        }
+				&mask, TPS65910_REG_INT_MSK);
+		mask &= ~(1 << irq);
+		return tps65910_i2c_write_u8(TPS65910_I2C_ID0,
+				mask, TPS65910_REG_INT_MSK);
+	}
 }
 EXPORT_SYMBOL(tps65910_enable_irq);
 
 int tps65910_disable_irq(int irq)
 {
-	u8  mask =0x00;
+	u8  mask = 0x00;
 
-       if (irq > 7) {
-                irq -= 8;
+	if (irq > 7) {
+		irq -= 8;
 		tps65910_i2c_read_u8(TPS65910_I2C_ID0,
-		&mask, TPS65910_REG_INT_MSK2);
-                mask |= (1 << irq);
-                return tps65910_i2c_write_u8(TPS65910_I2C_ID0,
-                                mask,TPS65910_REG_INT_MSK2);
-        } else {
+				&mask, TPS65910_REG_INT_MSK2);
+		mask |= (1 << irq);
+		return tps65910_i2c_write_u8(TPS65910_I2C_ID0,
+				mask, TPS65910_REG_INT_MSK2);
+	} else {
 		tps65910_i2c_read_u8(TPS65910_I2C_ID0,
-		&mask, TPS65910_REG_INT_MSK);
-                mask = (1 << irq);
-                return tps65910_i2c_write_u8(TPS65910_I2C_ID0,
-                                mask,TPS65910_REG_INT_MSK);
-        }
+				&mask, TPS65910_REG_INT_MSK);
+		mask = (1 << irq);
+		return tps65910_i2c_write_u8(TPS65910_I2C_ID0,
+				mask, TPS65910_REG_INT_MSK);
+	}
 }
 EXPORT_SYMBOL(tps65910_disable_irq);
 
 int tps65910_add_irq_work(int irq,
-                void (*handler)(void *data))
+		void (*handler)(void *data))
 {
 	int ret = 0;
 	the_tps65910->handlers[irq] = handler;
 	ret = tps65910_enable_irq(irq);
 
-        return ret;
+	return ret;
 }
 EXPORT_SYMBOL(tps65910_add_irq_work);
 
-static int tps65910_remove_irq_work(int irq)
+int tps65910_remove_irq_work(int irq)
 {
 	int ret = 0;
 	ret = tps65910_disable_irq(irq);
@@ -356,38 +360,36 @@ static void tps65910_core_work(struct work_struct *work)
 {
 	/* Read the status register and take action  */
 	u8	status = 0x00;
-	u8	status2 =0x00;
+	u8	status2 = 0x00;
 	u8 	mask = 0x00;
 	u8 	mask2 = 0x00;
 	u16 	isr = 0x00;
-	u16 	irq =0;
+	u16 	irq = 0;
 	void	(*handler)(void *data) = NULL;
 
 	mutex_lock(&work_lock);
 	while (1) {
 		tps65910_i2c_read_u8(TPS65910_I2C_ID0, &status2,
-						TPS65910_REG_INT_STS2);
+				TPS65910_REG_INT_STS2);
 		tps65910_i2c_read_u8(TPS65910_I2C_ID0, &mask2,
 				TPS65910_REG_INT_MSK2);
 		status2 &= (~mask2);
-		isr = ( status2 << 8);
+		isr = (status2 << 8);
 		tps65910_i2c_read_u8(TPS65910_I2C_ID0, &status,
 				TPS65910_REG_INT_STS);
 		tps65910_i2c_read_u8(TPS65910_I2C_ID0, &mask,
 				TPS65910_REG_INT_MSK);
 		status &= ~(mask);
 		isr |= status;
-
-		if( !isr)
+		if (!isr)
 			break;
 
-		while(isr) {
+		while (isr) {
 			irq = fls(isr) - 1;
 			isr &= ~(1 << irq);
 			handler = the_tps65910->handlers[irq];
-			if (handler) {
+			if (handler)
 				handler(the_tps65910);
-			}
 		}
 	}
 	enable_irq(the_tps65910->irq_num);
@@ -399,10 +401,10 @@ static irqreturn_t tps65910_isr(int irq,  void *data)
 {
 
 #ifdef CONFIG_LOCKDEP
-/* WORKAROUND for lockdep forcing IRQF_DISABLED on us, which
- * we don't want and can't tolerate.  Although it might be
- * friendlier not to borrow this thread context...
- */
+	/* WORKAROUND for lockdep forcing IRQF_DISABLED on us, which
+	 * we don't want and can't tolerate.  Although it might be
+	 * friendlier not to borrow this thread context...
+	 */
 	local_irq_enable();
 #endif
 	disable_irq_nosync(irq);
@@ -454,7 +456,7 @@ static inline struct device *add_child(unsigned chip, const char *name,
 	return add_numbered_child(chip, name, -1, pdata, pdata_len,
 			can_wakeup, irq);
 }
-static
+	static
 struct device *add_regulator_linked(int num, struct regulator_init_data *pdata,
 		struct regulator_consumer_supply *consumers,
 		unsigned num_consumers)
@@ -471,13 +473,13 @@ struct device *add_regulator_linked(int num, struct regulator_init_data *pdata,
 			pdata, sizeof(*pdata), false, TPS65910_HOST_IRQ);
 }
 
-static struct device *
+	static struct device *
 add_regulator(int num, struct regulator_init_data *pdata)
 {
 	return add_regulator_linked(num, pdata, NULL, 0);
 }
 
-static int
+	static int
 add_children(struct tps65910_platform_data *pdata, unsigned long features)
 {
 	int 		status;
@@ -485,9 +487,9 @@ add_children(struct tps65910_platform_data *pdata, unsigned long features)
 
 	struct platform_device  *pdev = NULL;
 
-	if (tps65910_has_gpio() && (pdata->gpio != NULL) ) {
+	if (tps65910_has_gpio() && (pdata->gpio != NULL)) {
 
-		pdev = platform_device_alloc("tps65910_gpio",-1);
+		pdev = platform_device_alloc("tps65910_gpio", -1);
 		if (!pdev) {
 			status = -ENOMEM;
 			goto err;
@@ -495,9 +497,11 @@ add_children(struct tps65910_platform_data *pdata, unsigned long features)
 		pdev->dev.parent = &tps65910_modules[0].client->dev;
 		device_init_wakeup(&pdev->dev, 0);
 		if (pdata) {
-			status = platform_device_add_data(pdev, pdata, sizeof(*pdata));
+			status = platform_device_add_data(pdev, pdata,
+							sizeof(*pdata));
 			if (status < 0) {
-				dev_dbg(&pdev->dev, "can't add platform_data\n");
+				dev_dbg(&pdev->dev,
+				"can't add platform_data\n");
 				goto err;
 			}
 		}
@@ -562,7 +566,7 @@ add_children(struct tps65910_platform_data *pdata, unsigned long features)
 	return 0;
 
 err:
-        return -1;
+	return -1;
 
 }
 
@@ -583,7 +587,7 @@ static int tps65910_remove(struct i2c_client *client)
 	return 0;
 }
 
-static int __init
+	static int __init
 tps65910_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int	 status;
@@ -633,12 +637,12 @@ tps65910_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	inuse = true;
 
 	if (pdata->irq_num) {
-		status = request_irq(pdata->irq_num, tps65910_isr, IRQF_DISABLED,
-			"tps65910",pdata);
+		status = request_irq(pdata->irq_num, tps65910_isr,
+					IRQF_DISABLED, "tps65910", pdata);
 		if (status < 0) {
 			pr_err("tps65910: could not claim irq%d: %d\n",
 					pdata->irq_num,	status);
-		goto fail;
+			goto fail;
 		}
 	}
 	if (pdata->board_tps65910_config != NULL)
@@ -646,7 +650,7 @@ tps65910_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
 	mutex_init(&work_lock);
 	INIT_WORK(&core_work, tps65910_core_work);
-	status = add_children(pdata,0x00);
+	status = add_children(pdata, 0x00);
 	if (status < 0)
 		goto fail;
 
@@ -706,12 +710,12 @@ static int __init tps65910_init(void)
 	int res;
 
 	res = i2c_add_driver(&tps65910_i2c_driver);
-        if (res < 0) {
-                pr_err(DRIVER_NAME ": driver registration failed\n");
-                return res;
-        }
+	if (res < 0) {
+		pr_err(DRIVER_NAME ": driver registration failed\n");
+		return res;
+	}
 
-        return 0;
+	return 0;
 }
 subsys_initcall(tps65910_init);
 
