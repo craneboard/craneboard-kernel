@@ -587,7 +587,7 @@ static int tps65910_remove(struct i2c_client *client)
 	return 0;
 }
 
-	static int __init
+static int __init
 tps65910_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int	 status;
@@ -634,9 +634,24 @@ tps65910_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		}
 		mutex_init(&tps65910->xfer_lock);
 	}
+
 	inuse = true;
 
+	if (pdata->board_tps65910_config != NULL)
+		pdata->board_tps65910_config(pdata);
+
+
 	if (pdata->irq_num) {
+		/* TPS65910 power ON interrupt(s) would have already been
+ 		 * occured, immediately after request_irq the control will be
+ 		 * transfered to tps65910_isr, if we do work initialization
+ 		 * after requesting IRQ, the system crashes (does not boot),
+ 		 * to avoid this we do work initialization before requesting
+ 		 * IRQ
+		 */
+		mutex_init(&work_lock);
+		INIT_WORK(&core_work, tps65910_core_work);
+
 		status = request_irq(pdata->irq_num, tps65910_isr,
 					IRQF_DISABLED, "tps65910", pdata);
 		if (status < 0) {
@@ -645,11 +660,7 @@ tps65910_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 			goto fail;
 		}
 	}
-	if (pdata->board_tps65910_config != NULL)
-		pdata->board_tps65910_config(pdata);
 
-	mutex_init(&work_lock);
-	INIT_WORK(&core_work, tps65910_core_work);
 	status = add_children(pdata, 0x00);
 	if (status < 0)
 		goto fail;
